@@ -14,7 +14,7 @@
  * to their corresponding column index in the symbols array. The symbol_count field keeps track of how many
  * unique symbols are in the alphabet.
  */
-struct alphabet
+typedef struct alphabet
 {
     /* Array of symbols in the alphabet. The index of each
     symbol corresponds to its column in the transition table. */
