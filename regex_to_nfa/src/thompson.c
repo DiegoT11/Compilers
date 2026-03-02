@@ -20,11 +20,11 @@ static t_nfa symbol_nfa(states_manager *m, char c)
     uint8_t accept = new_state(m);
 
     if ((unsigned char)c == EPSILON_SYMBOL)
-        col = EPSILON_COL;
+        c = EPSILON_COL;
     else
-        col = add_symbol(&m->nfa_alphabet, c);
+        c = add_symbol(&m->nfa_alphabet, c);
 
-    add_transition(m, start, accept, col);
+    add_transition(m, start, accept, c);
 
     t_nfa nfa = {
         .start  = start,
