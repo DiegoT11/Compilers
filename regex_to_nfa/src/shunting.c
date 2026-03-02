@@ -80,8 +80,10 @@ item *itemize_regex(const char *regex_str, int *out_size)
 
 /**
  * @brief Determines if an item can appear before an implicit concatenation.
- *
  * Concatenation is needed after: operand, ')', or postfix unary operator
+ *
+ * @param t The item_type to check
+ * @return true if concatenation is needed after this type, false otherwise
  */
 static bool needs_concat_after(item_type t)
 {
@@ -94,8 +96,10 @@ static bool needs_concat_after(item_type t)
 
 /**
  * @brief Determines if an item can appear after an implicit concatenation.
- *
  * Concatenation is needed before: operand or '('
+ *
+ * @param t The item_type to check
+ * @return true if concatenation is needed before this type, false otherwise
  */
 static bool needs_concat_before(item_type t)
 {
