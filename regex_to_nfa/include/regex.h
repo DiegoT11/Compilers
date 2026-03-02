@@ -69,6 +69,14 @@ typedef struct Regex
  */
 regex parse_regex(const char *regex_str);
 
+/**
+ * @brief Helper function to determine the type of an item based on its character value.
+ *
+ * @param c The character to check
+ * @return An item_type corresponding to the character, or OPERAND if it's not an operator
+ */
+item_type get_item_type(char c);
+
 /*
  * @brief Constructor to create a new item with the given value and operator status.
  *
