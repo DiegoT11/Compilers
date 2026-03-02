@@ -1,13 +1,17 @@
 ﻿cmake_minimum_required(VERSION 3.16)
-project(regex_to_nfa C)
 
+project(regex_to_nfa C)
 
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 
-
 add_executable(regex_to_nfa
-    ./src/main.c
-    ./src/nfa.c
-    ./src/regex.c
+    src/main.c
+    src/nfa.c
+    src/regex.c
+    src/shunting.c
+    src/simulate.c
+    src/thompson.c
 )
+
+target_include_directories(regex_to_nfa PRIVATE include)
