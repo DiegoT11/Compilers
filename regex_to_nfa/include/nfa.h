@@ -102,12 +102,61 @@ typedef struct NFA
 
 // Public API
 
+/**
+ * @brief Function to create a new alphabet. This function initializes an alphabet struct with
+ * default values, including setting the epsilon symbol and initializing the character-to-column
+ * mapping.
+ */
 alphabet new_alphabet(void);
+
+/**
+ * @brief Function to add a symbol to the alphabet. This function checks if the symbol is already
+ * in the alphabet, and if not, it adds the symbol to the symbols array and updates the
+ * character-to-column mapping.
+ *
+ * @param a Pointer to the alphabet struct to which the symbol should be added
+ * @param c The symbol to add to the alphabet
+ * @return The column index of the added symbol in the alphabet
+ */
 uint8_t  add_symbol(alphabet *a, char c);
+
+/**
+ * @brief Struct to manage states and transitions during NFA construction. It keeps track
+ * of the next available state ID, the list of states, the list of transitions, and the
+ * alphabet used by the NFAs being constructed.
+ */
 states_manager new_states_manager(void);
-uint8_t  new_state(states_manager *m);
-void     add_transition(states_manager *m, uint8_t from, uint8_t to, uint8_t col);
-nfa      t_nfa_to_nfa(t_nfa t, states_manager m);
+
+/**
+ * @brief Function to create a new state in the states manager. This function assigns a new state ID,
+ * adds it to the list of states, and returns the new state ID.
+ *
+ * @param m Pointer to the states_manager struct that manages the states
+ * @return The ID of the newly created state
+ */
+uint8_t new_state(states_manager *m);
+
+/**
+ * @brief Function to add a transition to the states manager. This function creates a new transition
+ * struct and adds it to the list of transitions.
+ * @param m Pointer to the states_manager struct that manages the states and transitions
+ * @param from The state from which the transition originates
+ * @param to The state to which the transition leads
+ * @param col The column index of the symbol in the alphabet
+ */
+void add_transition(states_manager *m, uint8_t from, uint8_t to, uint8_t col);
+
+/**
+ * @brief Function to convert a temporary NFA representation (t_nfa) into the final NFA struct. This function
+ * takes the start and end states from the temporary NFA, initializes the transition table based on the
+ * transitions stored in the states manager, and calculates the epsilon closures for all states.
+ *
+ * @param t The temporary NFA representation containing the start and end states
+ * @param m The states_manager struct that contains the transitions and alphabet information
+ * @return An NFA struct representing the final non-deterministic finite automaton
+ */
+nfa t_nfa_to_nfa(t_nfa t, states_manager m);
+
 nfa regex_to_nfa(const regex r);
 
 /**
