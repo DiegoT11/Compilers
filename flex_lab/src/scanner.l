@@ -1,54 +1,25 @@
-/*
-Plantilla guiada para el scanner de Flex.
+%option noyywrap yylineno
 
-Objetivo para el alumnado:
-1) Completar cada bloque en este mismo orden.
-2) Mantener los nombres de macros y tokens tal cual se indican.
-3) Al finalizar, el archivo debe comportarse como el scanner final esperado.
-*/
+%{ 
+	#include "scanner.h" 
+%}
 
-/*
-SECCIÓN 1: Opciones globales de Flex
-- Agrega la opción para NO requerir yywrap.
-- Agrega la opción para llevar conteo automático de líneas.
+%x COMMENT 
 
-Pista: la línea esperada usa dos opciones en una sola directiva %option.
-*/
+ID [a-zA-Z_][a-zA-Z_0-9]*
+INT [0-9]+
+FLOAT ( ({INT}\.{INT}) | ({INT}\.{INT})([eE][+-]?{INT}) | {INT}(e[+-]?{INT}) )
+WS [ \t\r\n]+
 
-/*
-SECCIÓN 2: Código C embebido
-- Abre el bloque %{ ... %}.
-- Incluye el header del scanner con #include "scanner.h".
-- Cierra el bloque.
-*/
+%%
 
-/*
-SECCIÓN 3: Estados léxicos
-- Declara un estado exclusivo llamado COMMENT para comentarios de bloque.
-*/
+"/*" {BEGIN(COMMENT);}
+<COMMENT>"*/"    {BEGIN(INITIAL);}
+<COMMENT>\n {}
+<COMMENT>. {}
+<COMMENT><<EOF>> {return TOK_ERROR;}
+"//"[^\n]* {}
 
-/*
-SECCIÓN 4: Macros (definiciones de regex reutilizables)
-- ID: identificadores tipo C (empieza con letra o _, luego letras/dígitos/_).
-- INT: uno o más dígitos.
-- FLOAT: número con punto opcionalmente con exponente, o entero con exponente.
-- WS: espacios en blanco (espacio, tab, retorno de carro y salto de línea).
-*/
-
-/*
-SECCIÓN 5: Inicio de reglas
-- Coloca el separador %% para comenzar reglas.
-*/
-
-/*
-SECCIÓN 6: Comentarios
-- Regla para iniciar comentario de bloque al leer "/*" (cambiar a estado COMMENT).
-- En COMMENT, regla para "*/" (volver a INITIAL).
-- En COMMENT, consumir \n sin acción (el conteo de línea se actualiza solo).
-- En COMMENT, consumir cualquier otro carácter y descartarlo.
-- En COMMENT, si llega EOF sin cerrar, devolver TOK_ERROR.
-- Regla para comentario de línea: "//" hasta antes de \n, sin devolver token.
-*/
 
 /*
 SECCIÓN 7: Espacios en blanco
@@ -98,7 +69,5 @@ SECCIÓN 13: Fin de archivo y error genérico
 - Regla final con . que retorna TOK_ERROR para cualquier carácter no reconocido.
 */
 
-/*
-SECCIÓN 14: Cierre de reglas
-- Coloca el separador %% final.
-*/
+
+%%
