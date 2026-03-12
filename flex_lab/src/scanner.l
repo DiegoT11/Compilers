@@ -22,13 +22,18 @@ WS [ \t\r\n]+
 
 {WS} {}
 
-/*
-SECCIÓN 8: Palabras reservadas
-- Agrega reglas exactas para:
-	int, float, double, char, void,
-	if, else, while, for, return, break, continue
-- Cada una debe retornar su token TOK_KW_* correspondiente.
-*/
+"int" {return TOK_KW_INT;}
+"float" {return TOK_KW_FLOAT;}
+"double" {return TOK_KW_DOUBLE:}
+"char" {return TOK_KW_CHAR;}
+"void" {return TOK_KW_VOID;}
+"if" {return TOK_KW_IF;}
+"else" {return TOK_KW_ELSE;}
+"while" {return TOK_KW_WHILE;}
+"for" {return TOK_KW_FOR;}
+"return" {return TOK_KW_RETURN;}
+"break" {return TOK_KW_BREAK;}
+"continue" {return TOK_KW_CONTINUE;}
 
 /*
 SECCIÓN 9: Operadores compuestos (siempre antes de los simples)
