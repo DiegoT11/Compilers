@@ -20,11 +20,7 @@ WS [ \t\r\n]+
 <COMMENT><<EOF>> {return TOK_ERROR;}
 "//"[^\n]* {}
 
-
-/*
-SECCIÓN 7: Espacios en blanco
-- Regla usando {WS} para ignorar whitespace.
-*/
+{WS} {}
 
 /*
 SECCIÓN 8: Palabras reservadas
