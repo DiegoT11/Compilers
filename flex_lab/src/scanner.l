@@ -40,18 +40,56 @@ SECCIÓN 9: Operadores compuestos (siempre antes de los simples)
 - ++, --, +=, -=, *=, /=, %=, ==, !=, <=, >=, &&, ||
 - Devuelven los TOK_* correspondientes.
 */
+%%
+"++" { return TOK_INC; }
+"--" { return TOK_DEC; }
+"+=" { return TOK_PLUS_ASSIGN;_}
+"-=" { return TOK_MINUS_ASSING; }
+"*=" { return TOK_MUL_ASSIGN; }
+"/=" { return TOK_DIV_ASSIGN; }
+"%=" { return TOK_MOD_ASSIGN; }
+
+"==" { return TOK_EQ; }
+"!=" { return TOK_NEQ; }
+"<=" { return TOK_LE; }
+">=" { return TOK_GE;}
+
+"&&" { return TOK_AND}
+"||" { return TOK_OR}
+%%
 
 /*
 SECCIÓN 10: Operadores simples
 - =, <, >, !, +, -, *, /, %
 - Devuelven los TOK_* correspondientes.
 */
+%%
+"=" { return TOK_EQ; }
+"<" { return TOK_LT; }
+">" { return TOK_GT; }
+"!" { return TOK_NOT; }
+"+" { return TOK_PLUS; }
+"-" { return TOK_MINUS; }
+"*" { return TOK_MUL; }
+"/" { return TOK_DIV; }
+"%" { return TOK_MOD; }
+%%
 
 /*
 SECCIÓN 11: Delimitadores
 - (, ), {, }, [, ], ,, ;
 - Devuelven los TOK_* correspondientes.
 */
+%%
+"(" { return TOK_LPAREN; }
+")" { return TOK_RPAREN; }
+"{" { return TOK_LBRACE; }
+"}" { return TOK_RBRACE; }
+"[" { return TOK_LBRACKET; }
+"]" { return TOK_RBRACKET; }
+"," { return TOK_COMMA; }
+";" { return TOK_SEMICOLON; }
+%%
 
 /*
 SECCIÓN 12: Literales e identificadores (orden importante)
@@ -63,6 +101,13 @@ SECCIÓN 12: Literales e identificadores (orden importante)
 
 Nota: si pones ID antes de keywords, las keywords se reconocerán como identificadores.
 */
+%%
+{FLOAT} { return TOK_FLOAT_LITERAL; }
+{INT} { return TK_INT_LITERAL; }
+\'([^\\\n]|\\.)\'  { return TOK_CHAR_LITERAL; }
+\"([^\\\n]|\\.)*\" { return TOK_STRING_LITERAL; }
+{ID} { return TOK_IDENTIFIER; }
+%%
 
 <<EOF>> {return TOK_EOF}
 . {return TOK_EOF}
