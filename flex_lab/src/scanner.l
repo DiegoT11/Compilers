@@ -20,19 +20,20 @@ WS [ \t\r\n]+
 <COMMENT><<EOF>> {return TOK_ERROR;}
 "//"[^\n]* {}
 
+{WS} {}
 
-/*
-SECCIÓN 7: Espacios en blanco
-- Regla usando {WS} para ignorar whitespace.
-*/
-
-/*
-SECCIÓN 8: Palabras reservadas
-- Agrega reglas exactas para:
-	int, float, double, char, void,
-	if, else, while, for, return, break, continue
-- Cada una debe retornar su token TOK_KW_* correspondiente.
-*/
+"int" {return TOK_KW_INT;}
+"float" {return TOK_KW_FLOAT;}
+"double" {return TOK_KW_DOUBLE:}
+"char" {return TOK_KW_CHAR;}
+"void" {return TOK_KW_VOID;}
+"if" {return TOK_KW_IF;}
+"else" {return TOK_KW_ELSE;}
+"while" {return TOK_KW_WHILE;}
+"for" {return TOK_KW_FOR;}
+"return" {return TOK_KW_RETURN;}
+"break" {return TOK_KW_BREAK;}
+"continue" {return TOK_KW_CONTINUE;}
 
 /*
 SECCIÓN 9: Operadores compuestos (siempre antes de los simples)
@@ -63,11 +64,7 @@ SECCIÓN 12: Literales e identificadores (orden importante)
 Nota: si pones ID antes de keywords, las keywords se reconocerán como identificadores.
 */
 
-/*
-SECCIÓN 13: Fin de archivo y error genérico
-- Regla <<EOF>> que retorna TOK_EOF.
-- Regla final con . que retorna TOK_ERROR para cualquier carácter no reconocido.
-*/
-
+<<EOF>> {return TOK_EOF}
+. {return TOK_EOF}
 
 %%
