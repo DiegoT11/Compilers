@@ -62,6 +62,17 @@ SECCIÓN 10: Operadores simples
 - =, <, >, !, +, -, *, /, %
 - Devuelven los TOK_* correspondientes.
 */
+%%
+"=" { return TOK_EQ; }
+"<" { return TOK_LT; }
+">" { return TOK_GT; }
+"!" { return TOK_NOT; }
+"+" { return TOK_PLUS; }
+"-" { return TOK_MINUS; }
+"*" { return TOK_MUL; }
+"/" { return TOK_DIV; }
+"%" { return TOK_MOD; }
+%%
 
 /*
 SECCIÓN 11: Delimitadores
