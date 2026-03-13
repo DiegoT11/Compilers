@@ -39,6 +39,23 @@ SECCIÓN 9: Operadores compuestos (siempre antes de los simples)
 - ++, --, +=, -=, *=, /=, %=, ==, !=, <=, >=, &&, ||
 - Devuelven los TOK_* correspondientes.
 */
+%%
+"++" { return TOK_INC; }
+"--" { return TOK_DEC; }
+"+=" { return TOK_PLUS_ASSIGN;_}
+"-=" { return TOK_MINUS_ASSING; }
+"*=" { return TOK_MUL_ASSIGN; }
+"/=" { return TOK_DIV_ASSIGN; }
+"%=" { return TOK_MOD_ASSIGN; }
+
+"==" { return TOK_EQ; }
+"!=" { return TOK_NEQ; }
+"<=" { return TOK_LE; }
+">=" { return TOK_GE;}
+
+"&&" { return TOK_AND}
+"||" { return TOK_OR}
+%%
 
 /*
 SECCIÓN 10: Operadores simples
