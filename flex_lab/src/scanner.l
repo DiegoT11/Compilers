@@ -8,7 +8,7 @@
 
 ID [a-zA-Z_][a-zA-Z_0-9]*
 INT [0-9]+
-FLOAT ( ({INT}\.{INT}) | ({INT}\.{INT})([eE][+-]?{INT}) | {INT}(e[+-]?{INT}) )
+FLOAT ({INT}\.{INT}([eE][+-]?{INT})?|{INT}[eE][+-]?{INT})
 WS [ \t\r\n]+
 
 %%
@@ -24,7 +24,7 @@ WS [ \t\r\n]+
 
 "int" {return TOK_KW_INT;}
 "float" {return TOK_KW_FLOAT;}
-"double" {return TOK_KW_DOUBLE:}
+"double" {return TOK_KW_DOUBLE;}
 "char" {return TOK_KW_CHAR;}
 "void" {return TOK_KW_VOID;}
 "if" {return TOK_KW_IF;}
@@ -35,16 +35,10 @@ WS [ \t\r\n]+
 "break" {return TOK_KW_BREAK;}
 "continue" {return TOK_KW_CONTINUE;}
 
-/*
-SECCIÓN 9: Operadores compuestos (siempre antes de los simples)
-- ++, --, +=, -=, *=, /=, %=, ==, !=, <=, >=, &&, ||
-- Devuelven los TOK_* correspondientes.
-*/
-%%
 "++" { return TOK_INC; }
 "--" { return TOK_DEC; }
-"+=" { return TOK_PLUS_ASSIGN;_}
-"-=" { return TOK_MINUS_ASSING; }
+"+=" { return TOK_PLUS_ASSIGN; }
+"-=" { return TOK_MINUS_ASSIGN; }
 "*=" { return TOK_MUL_ASSIGN; }
 "/=" { return TOK_DIV_ASSIGN; }
 "%=" { return TOK_MOD_ASSIGN; }
@@ -52,19 +46,12 @@ SECCIÓN 9: Operadores compuestos (siempre antes de los simples)
 "==" { return TOK_EQ; }
 "!=" { return TOK_NEQ; }
 "<=" { return TOK_LE; }
-">=" { return TOK_GE;}
+">=" { return TOK_GE; }
 
-"&&" { return TOK_AND}
-"||" { return TOK_OR}
-%%
+"&&" { return TOK_AND; }
+"||" { return TOK_OR; }
 
-/*
-SECCIÓN 10: Operadores simples
-- =, <, >, !, +, -, *, /, %
-- Devuelven los TOK_* correspondientes.
-*/
-%%
-"=" { return TOK_EQ; }
+"=" { return TOK_ASSIGN; }
 "<" { return TOK_LT; }
 ">" { return TOK_GT; }
 "!" { return TOK_NOT; }
@@ -73,14 +60,7 @@ SECCIÓN 10: Operadores simples
 "*" { return TOK_MUL; }
 "/" { return TOK_DIV; }
 "%" { return TOK_MOD; }
-%%
 
-/*
-SECCIÓN 11: Delimitadores
-- (, ), {, }, [, ], ,, ;
-- Devuelven los TOK_* correspondientes.
-*/
-%%
 "(" { return TOK_LPAREN; }
 ")" { return TOK_RPAREN; }
 "{" { return TOK_LBRACE; }
@@ -89,27 +69,14 @@ SECCIÓN 11: Delimitadores
 "]" { return TOK_RBRACKET; }
 "," { return TOK_COMMA; }
 ";" { return TOK_SEMICOLON; }
-%%
 
-/*
-SECCIÓN 12: Literales e identificadores (orden importante)
-- Primero FLOAT -> TOK_FLOAT_LITERAL.
-- Luego INT -> TOK_INT_LITERAL.
-- Luego literal de char (admitiendo escapes) -> TOK_CHAR_LITERAL.
-- Luego literal de string (admitiendo escapes) -> TOK_STRING_LITERAL.
-- Finalmente ID -> TOK_IDENTIFIER.
-
-Nota: si pones ID antes de keywords, las keywords se reconocerán como identificadores.
-*/
-%%
 {FLOAT} { return TOK_FLOAT_LITERAL; }
-{INT} { return TK_INT_LITERAL; }
+{INT} { return TOK_INT_LITERAL; }
 \'([^\\\n]|\\.)\'  { return TOK_CHAR_LITERAL; }
 \"([^\\\n]|\\.)*\" { return TOK_STRING_LITERAL; }
 {ID} { return TOK_IDENTIFIER; }
-%%
 
-<<EOF>> {return TOK_EOF}
-. {return TOK_EOF}
+<<EOF>> {return TOK_EOF;}
+. {return TOK_ERROR;}
 
 %%
