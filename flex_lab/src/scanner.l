@@ -64,11 +64,7 @@ SECCIÓN 12: Literales e identificadores (orden importante)
 Nota: si pones ID antes de keywords, las keywords se reconocerán como identificadores.
 */
 
-/*
-SECCIÓN 13: Fin de archivo y error genérico
-- Regla <<EOF>> que retorna TOK_EOF.
-- Regla final con . que retorna TOK_ERROR para cualquier carácter no reconocido.
-*/
-
+<<EOF>> {return TOK_EOF}
+. {return TOK_EOF}
 
 %%
