@@ -482,6 +482,9 @@ int compute_follow_for_non_terminal(const grammar *g, int non_terminal_id, symbo
 int compute_first_for_start_symbol(const grammar *g, symbol **out_first)
 {
 	// TODO: Delegate FIRST computation to the generic non-terminal function using the start-symbol index.
+	if(!g || !out_first)
+		return 0;
+	return compute_first_for_non_terminal(g, 0, out_first);
 }
 
 /**
