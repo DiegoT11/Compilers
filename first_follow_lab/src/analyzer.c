@@ -9,6 +9,12 @@
 static int find_terminal_id(const grammar *g, const char *name)
 {
 	// TODO: Validate inputs and search terminal list to return the matching terminal id.
+	if (g == NULL || name == NULL)
+    {
+        return -1;
+    }
+
+    return get_symbol_id_from_hash(name, &g->terminal_index);
 }
 
 /**
