@@ -28,29 +28,34 @@ static int find_terminal_id(const grammar *g, const char *name)
 static bool add_symbol_to_array(symbol **arr, int *count, const char *text, bool is_terminal)
 {
 	// TODO: Reallocate the array, duplicate symbol text, fill metadata, and increase count.
+    // validate input
 	if (arr == NULL || count == NULL || text == NULL)
     {
         return false;
     }
 
+    // extend array in one element
     symbol *new_array = (symbol *)realloc(*arr, (*count + 1) * sizeof(symbol));
     if (new_array == NULL)
     {
         return false;
     }
 
+    // update pointer
     *arr = new_array;
 
+    // duplicate symbol text
     char *duplicate_text = strdup(text);
     if (duplicate_text == NULL)
     {
         return false;
     }
 
-    (*arr)[*count].symbol = duplicate_text;
-    (*arr)[*count].symbol_length = (int)strlen(text);
-    (*arr)[*count].is_terminal = is_terminal;
+    (*arr)[*count].symbol = duplicate_text; // pointer to duplicate text
+    (*arr)[*count].symbol_length = (int)strlen(text); // pre-calculated lenght
+    (*arr)[*count].is_terminal = is_terminal; // symbol's rol
 
+    // increase count after success
     (*count)++;
     return true;
 }
@@ -66,19 +71,24 @@ static bool add_symbol_to_array(symbol **arr, int *count, const char *text, bool
 static bool compute_first_tables(const grammar *g, bool **first_table, bool **nullable, int *epsilon_id)
 {
 	// TODO: Allocate FIRST/nullable tables and compute them with fixed-point propagation over productions.
+
+    // validate input
 	if (g == NULL || first_table == NULL || nullable == NULL || epsilon_id == NULL)
     {
         return false;
     }
 
+    // search for epsilon to exclude it from propagating
     *epsilon_id = find_terminal_id(g, "epsilon");
 
+    // initialize first_table in false
     *first_table = (bool *)calloc(g->num_non_terminals * g->num_terminals, sizeof(bool));
     if (*first_table == NULL)
     {
         return false;
     }
 
+    // initialize nullable in false
     *nullable = (bool *)calloc(g->num_non_terminals, sizeof(bool));
     if (*nullable == NULL)
     {
@@ -87,51 +97,64 @@ static bool compute_first_tables(const grammar *g, bool **first_table, bool **nu
     }
 
     bool changed = true;
+
+    // until no production adds new symbols
     while (changed)
     {
         changed = false;
 
+        // for every production A -> x1 x2 ... xn
         for (int p = 0; p < g->num_productions; p++)
         {
+            
             production prod = g->productions[p];
             int A = prod.non_terminal_id;
 
+            // assume every production is nullable until the first symbol doesn't
             bool all_nullable = true;
 
+            // for every xi
             for (int j = 0; j < prod.production_length; j++)
             {
                 int sym_id = prod.production_symbol_ids[j];
                 bool is_terminal = sym_id < g->num_terminals;
 
-                if (es_terminal)
-                {
+                if (is_terminal)
+                {   
+                    // if there isn't in first[A]
                     if (!(*first_table)[A * g->num_terminals + sym_id])
                     {
+                        // add it
                         (*first_table)[A * g->num_terminals + sym_id] = true;
                         changed = true;
                     }
+                    // no longer nullable, stop
                     all_nullable = false;
                     break;
                 }
                 else
                 {
-
                     int Xi = sym_id - g->num_terminals;
-
+                    
+                    // for every terminal t in first[xi]
                     for (int t = 0; t < g->num_terminals; t++)
                     {
+                        // it's nullable
                         if (t == *epsilon_id)
                         {
                             continue;
                         }
+                        // if t there isn't in first[xi]
                         if ((*first_table)[Xi * g->num_terminals + t] &&
                             !(*first_table)[A  * g->num_terminals + t])
                         {
+                            // add it
                             (*first_table)[A * g->num_terminals + t] = true;
                             changed = true;
                         }
                     }
 
+                    // xi isn't nullable, the prod can't derivate on epsilon
                     if (!(*nullable)[Xi])
                     {
                         all_nullable = false;
@@ -139,15 +162,15 @@ static bool compute_first_tables(const grammar *g, bool **first_table, bool **nu
                     }
                 }
             }
-
+            // every A symbols' production are nullable 
             if (all_nullable && !(*nullable)[A])
             {
+                // A nullable
                 (*nullable)[A] = true;
                 changed = true;
             }
         }
     }
-
     return true;
 }
 
