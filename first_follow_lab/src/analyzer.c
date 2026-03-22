@@ -408,8 +408,29 @@ static int collect_follow_for_non_terminal(
  * @return Number of symbols in out_first, or 0 on error.
  */
 int compute_first_for_non_terminal(const grammar *g, int non_terminal_id, symbol **out_first)
-{
-	// TODO: Validate inputs, compute shared FIRST tables, and collect FIRST for the requested non-terminal.
+{ // TODO: Validate inputs, compute FIRST/nullable tables, then collect FIRST for the target non-terminal.
+    if (!g || !out_first)
+        return 0;
+
+    bool *first_table;
+    bool *nullable;
+    int epsilon_id;
+	
+    if (!compute_first_tables(g, &first_table, &nullable, &epsilon_id))
+        return 0;
+	// collect FIRST for the target non-terminal
+    int count = collect_first_for_non_terminal(
+        g,
+        non_terminal_id,
+        first_table,
+        nullable,
+        epsilon_id,
+        out_first);
+	
+    free(first_table);
+    free(nullable);
+
+    return count;
 }
 
 /**
