@@ -443,6 +443,34 @@ int compute_first_for_non_terminal(const grammar *g, int non_terminal_id, symbol
 int compute_follow_for_non_terminal(const grammar *g, int non_terminal_id, symbol **out_follow)
 {
 	// TODO: Validate inputs, compute FIRST/nullable and FOLLOW tables, then collect FOLLOW for the target non-terminal.
+	if(!g || !out_follow)
+		return 0;
+
+	bool *first_table;
+	bool *nullable;
+	int epsilon_id;
+	bool *follow_table;
+	int follow_cols;
+	// compute FIRST/nullable tables for FOLLOW computation
+	if (!compute_first_tables(g, &first_table, &nullable, &epsilon_id))
+		return 0;
+	// compute FOLLOW tableSS
+	if (!compute_follow_table(g, first_table, nullable, epsilon_id, &follow_table, &follow_cols))
+	{
+		free(first_table);
+		free(nullable);
+		return 0;
+	}
+	// collect FOLLOW for the target non-terminal
+    int count = collect_follow_for_non_terminal(
+        g,
+        non_terminal_id,
+        follow_table,
+        follow_cols,
+        out_follow);
+
+    free(follow_table);
+    return count;
 }
 
 /**
