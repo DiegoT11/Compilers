@@ -8,13 +8,23 @@
  */
 static int find_terminal_id(const grammar *g, const char *name)
 {
-	// TODO: Validate inputs and search terminal list to return the matching terminal id.
-	if (g == NULL || name == NULL)
+	// validate input
+    if (g == NULL || name == NULL)
     {
         return -1;
     }
 
-    return get_symbol_id_from_hash(name, &g->terminal_index);
+    // linear search through terminal list
+    for (int i = 0; i < g->num_terminals; i++)
+    {
+        if (strcmp(g->terminals[i].symbol, name) == 0)
+        {
+            return i;
+        }
+    }
+
+    // terminal not found
+    return -1;
 }
 
 /**
@@ -73,22 +83,22 @@ static bool compute_first_tables(const grammar *g, bool **first_table, bool **nu
 	// TODO: Allocate FIRST/nullable tables and compute them with fixed-point propagation over productions.
 
     // validate input
-	if (g == NULL || first_table == NULL || nullable == NULL || epsilon_id == NULL)
+    if (g == NULL || first_table == NULL || nullable == NULL || epsilon_id == NULL)
     {
         return false;
     }
 
-    // search for epsilon to exclude it from propagating
+    // search for epsilon to avoid propagating it in FIRST sets
     *epsilon_id = find_terminal_id(g, "epsilon");
 
-    // initialize first_table in false
+    // initialize FIRST table with false values
     *first_table = (bool *)calloc(g->num_non_terminals * g->num_terminals, sizeof(bool));
     if (*first_table == NULL)
     {
         return false;
     }
 
-    // initialize nullable in false
+    // initialize nullable array with false values
     *nullable = (bool *)calloc(g->num_non_terminals, sizeof(bool));
     if (*nullable == NULL)
     {
@@ -98,63 +108,80 @@ static bool compute_first_tables(const grammar *g, bool **first_table, bool **nu
 
     bool changed = true;
 
-    // until no production adds new symbols
+    // iterate until no new symbols are added to any FIRST set
     while (changed)
     {
         changed = false;
 
-        // for every production A -> x1 x2 ... xn
+        // for each production A -> x1 x2 ... xn
         for (int p = 0; p < g->num_productions; p++)
         {
-            
             production prod = g->productions[p];
             int A = prod.non_terminal_id;
 
-            // assume every production is nullable until the first symbol doesn't
+            // assume the production is nullable until proven otherwise
             bool all_nullable = true;
 
-            // for every xi
+            // special case: empty production => nullable
+            if (prod.production_length == 0)
+            {
+                if (!(*nullable)[A])
+                {
+                    (*nullable)[A] = true;
+                    changed = true;
+                }
+                continue;
+            }
+
+            // process each symbol xi in the production
             for (int j = 0; j < prod.production_length; j++)
             {
                 int sym_id = prod.production_symbol_ids[j];
                 bool is_terminal = sym_id < g->num_terminals;
 
+                // if xi is a terminal
                 if (is_terminal)
-                {   
-                    // if there isn't in first[A]
+                {
+                    // if terminal is epsilon, continue with next symbol
+                    if (sym_id == *epsilon_id)
+                    {
+                        continue;
+                    }
+
+                    // add terminal to FIRST(A) if not already present
                     if (!(*first_table)[A * g->num_terminals + sym_id])
                     {
-                        // add it
                         (*first_table)[A * g->num_terminals + sym_id] = true;
                         changed = true;
                     }
-                    // no longer nullable, stop
+
+                    // terminal stops the nullable chain
                     all_nullable = false;
                     break;
                 }
-                else
+                else // xi is a non-terminal
                 {
                     int Xi = sym_id - g->num_terminals;
-                    
-                    // for every terminal t in first[xi]
+
+                    // add FIRST(Xi) except epsilon to FIRST(A)
                     for (int t = 0; t < g->num_terminals; t++)
                     {
-                        // it's nullable
+                        // skip epsilon
                         if (t == *epsilon_id)
                         {
                             continue;
                         }
-                        // if t there isn't in first[xi]
+
+                        // if t is in FIRST(Xi) and not yet in FIRST(A), add it
                         if ((*first_table)[Xi * g->num_terminals + t] &&
-                            !(*first_table)[A  * g->num_terminals + t])
+                            !(*first_table)[A * g->num_terminals + t])
                         {
-                            // add it
                             (*first_table)[A * g->num_terminals + t] = true;
                             changed = true;
                         }
                     }
 
-                    // xi isn't nullable, the prod can't derivate on epsilon
+                    // if Xi is not nullable, stop processing this production
                     if (!(*nullable)[Xi])
                     {
                         all_nullable = false;
@@ -162,15 +189,19 @@ static bool compute_first_tables(const grammar *g, bool **first_table, bool **nu
                     }
                 }
             }
-            // every A symbols' production are nullable 
-            if (all_nullable && !(*nullable)[A])
+
+            // if all symbols in the production are nullable, then A is nullable
+            if (all_nullable)
             {
-                // A nullable
-                (*nullable)[A] = true;
-                changed = true;
+                if (!(*nullable)[A])
+                {
+                    (*nullable)[A] = true;
+                    changed = true;
+                }
             }
         }
     }
+
     return true;
 }
 
@@ -470,6 +501,8 @@ int compute_follow_for_non_terminal(const grammar *g, int non_terminal_id, symbo
         out_follow);
 
     free(follow_table);
+    free(first_table);
+    free(nullable);
     return count;
 }
 
