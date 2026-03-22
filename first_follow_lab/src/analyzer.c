@@ -317,7 +317,36 @@ static int collect_first_for_non_terminal(
 	int epsilon_id,
 	symbol **out_first)
 {
-	// TODO: Read one FIRST row, append terminal symbols, and include epsilon when nullable.
+	// validate input
+	if(!g || !first_table || !nullable || !out_first || non_terminal_id < 0 || non_terminal_id >= g->num_non_terminals)
+		return 0;
+
+	int count = 0;
+	// for every terminal t, if t in first[non_terminal_id], add it to out_first
+	for (int t = 0; t < g->num_terminals; t++)
+	{// if t is in first[non_terminal_id]
+		if (first_table[non_terminal_id * g->num_terminals + t])
+		{ // add it to out_first
+			if (!add_symbol_to_array(out_first, &count, g->terminals[t].symbol, true))
+			{ // on allocation failure, free the collected symbols and return 0
+				free_symbol_array(*out_first, count);
+				*out_first = NULL;
+				return 0;
+			}
+		}
+	}
+	// if non_terminal_id is nullable and epsilon is in the grammar, add epsilon to out_first
+	if (nullable[non_terminal_id] && epsilon_id != -1)
+	{
+		if (!add_symbol_to_array(out_first, &count, g->terminals[epsilon_id].symbol, true))
+		{ // on allocation failure, free the collected symbols and return 0
+			free_symbol_array(*out_first, count);
+			*out_first = NULL;
+			return 0;
+		}
+	}
+	// return the number of collected symbols
+	return count;
 }
 
 /**
