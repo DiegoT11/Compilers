@@ -365,7 +365,39 @@ static int collect_follow_for_non_terminal(
 	int follow_cols,
 	symbol **out_follow)
 {
-	// TODO: Read one FOLLOW row, append terminal symbols, and include end marker '$' when present.
+	// validate input
+	if(!g || !follow_table || !out_follow || non_terminal_id < 0 || non_terminal_id >= g->num_non_terminals)
+		return 0;
+
+	int count = 0;
+	// for every terminal t, if t in follow[non_terminal_id], add it to out_follow
+	for (int t = 0; t < follow_cols; t++)
+	{// if t is in follow[non_terminal_id]
+		if (follow_table[non_terminal_id * follow_cols + t])
+		{ // add it to out_follow
+			const char *symbol_name;
+			bool is_terminal;
+			if (t == follow_cols - 1)
+			{ // it's the end marker $
+				symbol_name = "$";
+				is_terminal = true;
+			}
+			else
+			{ // it's a terminal from the grammar
+				symbol_name = g->terminals[t].symbol;
+				is_terminal = true;
+			}
+
+			if (!add_symbol_to_array(out_follow, &count, symbol_name, is_terminal))
+			{ // on allocation failure, free the collected symbols and return 0
+				free_symbol_array(*out_follow, count);
+				*out_follow = NULL;
+				return 0;
+			}
+		}
+	}
+	// return the number of collected symbols
+	return count;
 }
 
 /**
