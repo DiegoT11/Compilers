@@ -181,7 +181,14 @@ int compute_follow_for_start_symbol(const grammar *g, symbol **out_follow)
  * @param count Number of initialized entries.
  * @return This function does not return a value.
  */
-void free_symbol_array(symbol *symbols, int count)
-{
-	// TODO: Release each symbol string and then free the symbol array buffer.
+void free_symbol_array(symbol *symbols, int count){
+	if (!symbols)
+    return;
+
+	for (int i = 0; i < count; i++)
+	{
+    	free(symbols[i].symbol);
+	}
+
+	free(symbols);
 }
