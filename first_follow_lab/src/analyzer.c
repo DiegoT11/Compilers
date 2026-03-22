@@ -9,6 +9,12 @@
 static int find_terminal_id(const grammar *g, const char *name)
 {
 	// TODO: Validate inputs and search terminal list to return the matching terminal id.
+	if (g == NULL || name == NULL)
+    {
+        return -1;
+    }
+
+    return get_symbol_id_from_hash(name, &g->terminal_index);
 }
 
 /**
@@ -22,6 +28,31 @@ static int find_terminal_id(const grammar *g, const char *name)
 static bool add_symbol_to_array(symbol **arr, int *count, const char *text, bool is_terminal)
 {
 	// TODO: Reallocate the array, duplicate symbol text, fill metadata, and increase count.
+	if (arr == NULL || count == NULL || text == NULL)
+    {
+        return false;
+    }
+
+    symbol *new_array = (symbol *)realloc(*arr, (*count + 1) * sizeof(symbol));
+    if (new_array == NULL)
+    {
+        return false;
+    }
+
+    *arr = new_array;
+
+    char *duplicate_text = strdup(text);
+    if (duplicate_text == NULL)
+    {
+        return false;
+    }
+
+    (*arr)[*count].symbol = duplicate_text;
+    (*arr)[*count].symbol_length = (int)strlen(text);
+    (*arr)[*count].is_terminal = is_terminal;
+
+    (*count)++;
+    return true;
 }
 
 /**
