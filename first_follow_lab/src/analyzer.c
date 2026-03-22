@@ -192,7 +192,111 @@ static bool compute_follow_table(
 	bool **out_follow,
 	int *out_follow_cols)
 {
-	// TODO: Allocate FOLLOW structures and propagate FOLLOW sets right-to-left until convergence.
+	// validate input: grammar, first_table, nullable, out_follow, and out_follow_cols must be non-null
+    if (!g || !first_table || !nullable || !out_follow || !out_follow_cols) 
+        return false;
+
+    int cols = g->num_terminals + 1; // +1 for $
+    *out_follow_cols = cols;
+
+	// initialize follow_table in false		
+    *out_follow = calloc(g->num_non_terminals * cols, sizeof(bool));
+	// allocation failure
+    if (!*out_follow)
+        return false;
+
+	// The end marker '$' is represented as the last column in the follow table.
+    int dollar_col = cols - 1;
+
+    // FOLLOW(start) = $
+    (*out_follow)[0 * cols + dollar_col] = true;
+
+    bool changed = true; 
+
+	// until no production adds new symbols to any FOLLOW set
+    while (changed)
+    {
+        changed = false;
+
+        for (int p = 0; p < g->num_productions; p++) // for every production A -> x1 x2 ... xn
+        {
+			// get production and its non-terminal A
+            production prod = g->productions[p]; 
+            int A = prod.non_terminal_id;
+
+            for (int i = 0; i < prod.production_length; i++) // for every xi
+            {
+				// if xi is a non-terminal B
+                int sym = prod.production_symbol_ids[i];
+				// if it's a terminal, skip
+                if (sym < g->num_terminals)
+                    continue;
+				// it's a non-terminal, get its index B
+                int B = sym - g->num_terminals;
+
+                bool beta_nullable = true;
+
+				// for every symbol xj in beta = xi+1 ... xn
+                for (int j = i + 1; j < prod.production_length; j++)
+                {
+					// get the next symbol after B
+                    int next = prod.production_symbol_ids[j];
+					// if next is a terminal
+                    if (next < g->num_terminals)
+                    {// if next isn't epsilon and isn't already in follow[B], add it to follow[B]
+                        if (next != epsilon_id &&
+                            !(*out_follow)[B * cols + next])
+                        {// add it to follow[B]
+                            (*out_follow)[B * cols + next] = true;
+                            changed = true;
+                        }
+
+                        beta_nullable = false;
+                        break;
+                    }
+                    else // next is a non-terminal
+                    {
+						// get next's index Xi
+                        int Xi = next - g->num_terminals;
+						// for every terminal t in first[xi]
+                        for (int t = 0; t < g->num_terminals; t++)
+                        {
+                            if (t == epsilon_id)
+                                continue;
+							// if t is in first[xi] and isn't already in follow[B], add it to follow[B]
+                            if (first_table[Xi * g->num_terminals + t] &&
+                                !(*out_follow)[B * cols + t])
+                            {
+                                (*out_follow)[B * cols + t] = true;
+                                changed = true;
+                            }
+                        }
+						// if xi isn't nullable, stop processing beta
+                        if (!nullable[Xi])
+                        {
+                            beta_nullable = false;
+                            break;
+                        }
+                    }
+                }
+
+                if (beta_nullable)
+                {
+                    for (int t = 0; t < cols; t++)
+                    {	// if t is in follow[A] and isn't already in follow[B], add it to follow[B]
+                        if ((*out_follow)[A * cols + t] &&
+                            !(*out_follow)[B * cols + t])
+                        {
+                            (*out_follow)[B * cols + t] = true;
+                            changed = true;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    return true;
 }
 
 /**
