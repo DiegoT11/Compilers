@@ -66,6 +66,89 @@ static bool add_symbol_to_array(symbol **arr, int *count, const char *text, bool
 static bool compute_first_tables(const grammar *g, bool **first_table, bool **nullable, int *epsilon_id)
 {
 	// TODO: Allocate FIRST/nullable tables and compute them with fixed-point propagation over productions.
+	if (g == NULL || first_table == NULL || nullable == NULL || epsilon_id == NULL)
+    {
+        return false;
+    }
+
+    *epsilon_id = find_terminal_id(g, "epsilon");
+
+    *first_table = (bool *)calloc(g->num_non_terminals * g->num_terminals, sizeof(bool));
+    if (*first_table == NULL)
+    {
+        return false;
+    }
+
+    *nullable = (bool *)calloc(g->num_non_terminals, sizeof(bool));
+    if (*nullable == NULL)
+    {
+        free(*first_table);
+        return false;
+    }
+
+    bool changed = true;
+    while (changed)
+    {
+        changed = false;
+
+        for (int p = 0; p < g->num_productions; p++)
+        {
+            production prod = g->productions[p];
+            int A = prod.non_terminal_id;
+
+            bool all_nullable = true;
+
+            for (int j = 0; j < prod.production_length; j++)
+            {
+                int sym_id = prod.production_symbol_ids[j];
+                bool is_terminal = sym_id < g->num_terminals;
+
+                if (es_terminal)
+                {
+                    if (!(*first_table)[A * g->num_terminals + sym_id])
+                    {
+                        (*first_table)[A * g->num_terminals + sym_id] = true;
+                        changed = true;
+                    }
+                    all_nullable = false;
+                    break;
+                }
+                else
+                {
+
+                    int Xi = sym_id - g->num_terminals;
+
+                    for (int t = 0; t < g->num_terminals; t++)
+                    {
+                        if (t == *epsilon_id)
+                        {
+                            continue;
+                        }
+                        if ((*first_table)[Xi * g->num_terminals + t] &&
+                            !(*first_table)[A  * g->num_terminals + t])
+                        {
+                            (*first_table)[A * g->num_terminals + t] = true;
+                            changed = true;
+                        }
+                    }
+
+                    if (!(*nullable)[Xi])
+                    {
+                        all_nullable = false;
+                        break;
+                    }
+                }
+            }
+
+            if (all_nullable && !(*nullable)[A])
+            {
+                (*nullable)[A] = true;
+                changed = true;
+            }
+        }
+    }
+
+    return true;
 }
 
 /**
