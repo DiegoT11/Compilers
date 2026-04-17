@@ -2,10 +2,12 @@
 #include "automaton.h"
 #include "parser.h"
 #include "scanner.h"
+#include "trace.h"
 
 #include <errno.h>
 
 static bool has_suffix(const char *text, const char *suffix);
+static bool is_trace_flag(const char *arg);
 
 extern int yylex(void);
 extern char *yytext;
@@ -453,36 +455,45 @@ static bool parse_token_stream(const grammar *g, const parser_table *table)
  */
 int main(int argc, char **argv)
 {
+    const char *grammar_path = NULL;
     const char *source_path = NULL;
     const char *table_output_path = "parse_table.csv";
 
+    bool use_trace = (argc > 1 &&
+                      (strcmp(argv[argc - 1], "--trace") == 0 ||
+                       strcmp(argv[argc - 1], "-t")      == 0));
+
     if (argc < 2)
     {
-        fprintf(stderr, "Usage: %s <grammar_file> [source_file] [table_output.(csv|json)]\n", argv[0]);
+        fprintf(stderr, "Usage: %s <grammar_file> [source_file] [table_output.(csv|json)] [--trace|-t]\n", argv[0]);
         return 1;
     }
 
-    if (argc >= 3)
+    // argv[1] is always the grammar file
+    grammar_path = argv[1];
+
+    for (int i = 2; i < argc; i++)
     {
-        if (has_suffix(argv[2], ".csv") || has_suffix(argv[2], ".json"))
+        if (is_trace_flag(argv[i]))
         {
-            table_output_path = argv[2];
+            use_trace = true;
+        }
+        else if (has_suffix(argv[i], ".csv") || has_suffix(argv[i], ".json"))
+        {
+            table_output_path = argv[i];
+        }
+        else if (source_path == NULL)
+        {
+            source_path = argv[i];
         }
         else
         {
-            source_path = argv[2];
+            fprintf(stderr, "Unexpected argument: %s\n", argv[i]);
+            fprintf(stderr,
+                    "Usage: %s <grammar_file> [source_file] [table_output.(csv|json)] [--trace|-t]\n",
+                    argv[0]);
+            return 1;
         }
-    }
-
-    if (argc >= 4)
-    {
-        table_output_path = argv[3];
-    }
-
-    if (argc > 4)
-    {
-        fprintf(stderr, "Usage: %s <grammar_file> [source_file] [table_output.(csv|json)]\n", argv[0]);
-        return 1;
     }
 
     char *grammar_file_content = read_file_all(argv[1]);
@@ -543,14 +554,13 @@ int main(int argc, char **argv)
     }
     printf("Parsing table written to %s\n", table_output_path);
 
-    bool accepted = parse_token_stream(g, table);
-    if (accepted)
-    {
-        printf("Input accepted.\n");
-    }
+    bool accepted;
+    if (use_trace)
+        accepted = parse_with_trace(g, table, stdout);
     else
     {
-        printf("Input rejected.\n");
+        accepted = parse_token_stream(g, table);
+        printf(accepted ? "Input accepted.\n" : "Input rejected.\n");
     }
 
     free_parser_table(table);
@@ -579,4 +589,18 @@ static bool has_suffix(const char *text, const char *suffix)
     }
 
     return strcmp(text + (text_len - suffix_len), suffix) == 0;
+}
+
+/**
+ * @brief Checks whether a command-line argument enables trace mode.
+ * @param arg Argument string.
+ * @return true if the argument corresponds to a trace flag, false otherwise.
+ *
+ * Extends the original CLI behavior and allow
+ * users to activate the trace execution mode.
+ */
+static bool is_trace_flag(const char *arg)
+{
+    return arg != NULL &&
+           (strcmp(arg, "--trace") == 0 || strcmp(arg, "-t") == 0);
 }
