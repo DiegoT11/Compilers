@@ -16,6 +16,7 @@ add_executable(first_and_follow
     ./src/analyzer.c
     ./src/automaton.c
     ./src/parser.c
+    ./src/trace.c
     ${FLEX_generate_scanner_OUTPUTS}
 )
 
