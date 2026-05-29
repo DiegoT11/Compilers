@@ -1,5 +1,5 @@
 CC     = gcc
-CFLAGS = -std=c99 -Wall -Wextra -g
+CFLAGS = -std=c99 -Wall -Wextra -g -Isrc
 BISON  = bison
 FLEX   = flex
 
@@ -16,7 +16,7 @@ simple: parser.tab.c lexer.yy.c $(SRCS)
 parser.tab.c parser.tab.h: src/parser.y
 	$(BISON) -d -o parser.tab.c src/parser.y
 
-lexer.yy.c: lexer.l parser.tab.h
+lexer.yy.c: src/lexer.l parser.tab.h
 	$(FLEX) -o lexer.yy.c src/lexer.l
 
 # Prueba rápida
