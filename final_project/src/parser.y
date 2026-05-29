@@ -46,6 +46,14 @@ Node* raiz;
 
 %%
 
+declaracion:
+    tipo lista_var {
+        $$ = nodo_nuevo("Declaracion", "", 0);
+        nodo_agregar_hijo($$, $1);
+        nodo_agregar_hijo($$, $2);
+    }
+;
+
 tipo:
     TOK_KW_ENTERO   { $$ = nodo_nuevo("Tipo", "entero",   0); }
   | TOK_KW_FLOTANTE { $$ = nodo_nuevo("Tipo", "flotante", 0); }
@@ -71,6 +79,41 @@ var_o_init:
   | TOK_IDENTIFICADOR TOK_ASIGNAR expresion {
         $$ = nodo_nuevo("VarConInicio", $1, yylineno);
         nodo_agregar_hijo($$, $3);
+    }
+;
+
+decl_arreglo:
+    tipo TOK_IDENTIFICADOR
+         TOK_CORCHETE_IZQUIERDO expresion TOK_CORCHETE_DERECHO {
+        Node* tam = nodo_nuevo("Tamano", "", 0);
+        nodo_agregar_hijo(tam, $4);
+        $$ = nodo_nuevo("DeclaracionArreglo", $2, yylineno);
+        nodo_agregar_hijo($$, $1);
+        nodo_agregar_hijo($$, tam);
+    }
+  | tipo TOK_IDENTIFICADOR
+         TOK_CORCHETE_IZQUIERDO expresion TOK_CORCHETE_DERECHO
+         TOK_ASIGNAR
+         TOK_LLAVE_IZQUIERDA lista_init TOK_LLAVE_DERECHA {
+        Node* tam = nodo_nuevo("Tamano", "", 0);
+        nodo_agregar_hijo(tam, $4);
+        Node* ini = nodo_nuevo("ValoresIniciales", "", 0);
+        nodo_agregar_hijo(ini, $8);
+        $$ = nodo_nuevo("DeclaracionArreglo", $2, yylineno);
+        nodo_agregar_hijo($$, $1);
+        nodo_agregar_hijo($$, tam);
+        nodo_agregar_hijo($$, ini);
+    }
+;
+
+lista_init:
+    expresion {
+        $$ = nodo_nuevo("ListaValores", "", 0);
+        nodo_agregar_hijo($$, $1);
+    }
+  | lista_init TOK_COMA expresion {
+        nodo_agregar_hijo($1, $3);
+        $$ = $1;
     }
 ;
 
