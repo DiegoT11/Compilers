@@ -118,6 +118,25 @@ expr_arit:
   | termino { $$ = $1; }
 ;
 
+termino:
+    termino TOK_MULTIPLICACION factor { $$ = nodo_nuevo("Operacion", "*", yylineno); nodo_agregar_hijo($$, $1); nodo_agregar_hijo($$, $3); }
+  | termino TOK_DIVISION        factor { $$ = nodo_nuevo("Operacion", "/", yylineno); nodo_agregar_hijo($$, $1); nodo_agregar_hijo($$, $3); }
+  | factor { $$ = $1; }
+;
+
+factor:
+    TOK_PARENTESIS_IZQUIERDO expresion TOK_PARENTESIS_DERECHO { $$ = $2; }
+  | acceso_arreglo { $$ = $1; }
+  | TOK_IDENTIFICADOR    { $$ = nodo_nuevo("Identificador",   $1,          yylineno); }
+  | TOK_LITERAL_ENTERO   { $$ = nodo_nuevo("LiteralEntero",   $1,          yylineno); }
+  | TOK_LITERAL_FLOTANTE { $$ = nodo_nuevo("LiteralFlotante", $1,          yylineno); }
+  | TOK_LITERAL_CADENA   { $$ = nodo_nuevo("LiteralCadena",   $1,          yylineno); }
+  | TOK_VERDADERO        { $$ = nodo_nuevo("LiteralBooleano", "verdadero", yylineno); }
+  | TOK_FALSO            { $$ = nodo_nuevo("LiteralBooleano", "falso",     yylineno); }
+  | TOK_MENOS factor     { $$ = nodo_nuevo("Negativo",        "",          yylineno); nodo_agregar_hijo($$, $2); }
+  | TOK_NOT   factor     { $$ = nodo_nuevo("Negacion",        "",          yylineno); nodo_agregar_hijo($$, $2); }
+;
+
 decl_arreglo:
     tipo TOK_IDENTIFICADOR
          TOK_CORCHETE_IZQUIERDO expresion TOK_CORCHETE_DERECHO {
