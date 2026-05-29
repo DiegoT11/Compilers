@@ -52,3 +52,33 @@ static Instruccion* emit(
 
     return ins;
 }
+
+/**
+ * @brief Crea un nuevo generador de código.
+ * @return Generador inicializado.
+ */
+Generador* gen_nuevo(void) {
+    return calloc(1, sizeof(Generador));
+}
+
+/**
+ * @brief Libera todas las instrucciones generadas.
+ * @param gen Generador a liberar.
+ */
+void gen_liberar(Generador* gen) {
+    if (!gen) {
+        return;
+    }
+
+    Instruccion* ins = gen->cabeza;
+
+    while (ins) {
+        Instruccion* sig = ins->siguiente;
+
+        free(ins);
+
+        ins = sig;
+    }
+
+    free(gen);
+}
