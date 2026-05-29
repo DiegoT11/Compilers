@@ -201,4 +201,34 @@ acceso_arreglo:
     }
 ;
 
+sent_si:
+    TOK_KW_SI TOK_PARENTESIS_IZQUIERDO expresion TOK_PARENTESIS_DERECHO bloque {
+        $$ = nodo_nuevo("Si", "", @1.first_line);
+        nodo_agregar_hijo($$, $3);
+        nodo_agregar_hijo($$, $5);
+    }
+  | TOK_KW_SI TOK_PARENTESIS_IZQUIERDO expresion TOK_PARENTESIS_DERECHO bloque
+        TOK_KW_SINO cuerpo_si {
+        $$ = nodo_nuevo("Si-Sino", "", @1.first_line);
+        nodo_agregar_hijo($$, $3);
+        nodo_agregar_hijo($$, $5);
+        nodo_agregar_hijo($$, $7);
+    }
+;
+
+cuerpo_si:
+    bloque   { $$ = $1; }
+  | sent_si  { $$ = $1; }
+;
+
+mientras_decl:
+    TOK_KW_MIENTRAS
+        TOK_PARENTESIS_IZQUIERDO expresion TOK_PARENTESIS_DERECHO
+        bloque {
+        $$ = nodo_nuevo("Mientras", "", @1.first_line);
+        nodo_agregar_hijo($$, $3);
+        nodo_agregar_hijo($$, $5);
+    }
+;
+
 %%
