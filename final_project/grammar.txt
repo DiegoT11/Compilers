@@ -1,0 +1,188 @@
+No-terminales:
+    Programa ListaSentencias Sentencia Bloque
+    Declaracion Tipo ListaVariables VarOInicio
+    DeclaracionArreglo ListaValores
+    Asignacion AsignacionArreglo AccesoArreglo
+    Expresion ExprOr ExprAnd ExprComp ExprArit Termino Factor
+    SentenciaSi CuerpoSino MientrasDecl ParaDecl
+    MostrarDecl LeerDecl ListaExpresiones
+
+Terminales:
+    /* tipos */       entero  flotante  booleano  cadena
+    /* flujo */       si  sino  mientras  para
+    /* e/s */         mostrar  leer
+    /* booleanos */   verdadero  falso
+    /* literales */   id  lit_entero  lit_flotante  lit_cadena
+    /* aritmeticos */ +  -  *  /
+    /* comparacion */ ==  !=  <  >  <=  >=
+    /* logicos */     &&  ||  !
+    /* asignacion */  =
+    /* puntuacion */  (  )  {  }  [  ]  ,  ;
+
+
+/* 
+ * Programa
+ */
+
+Programa -> ListaSentencias
+
+ListaSentencias -> ListaSentencias Sentencia
+ListaSentencias -> Sentencia
+
+Sentencia -> Declaracion ;
+Sentencia -> DeclaracionArreglo ;
+Sentencia -> Asignacion ;
+Sentencia -> AsignacionArreglo ;
+Sentencia -> MostrarDecl ;
+Sentencia -> LeerDecl ;
+Sentencia -> SentenciaSi
+Sentencia -> MientrasDecl
+Sentencia -> ParaDecl
+Sentencia -> Bloque
+
+
+/*
+ * Bloq
+ */
+
+Bloque -> { ListaSentencias }
+Bloque -> { }
+
+
+/*
+ * Declaracion de variables escalares
+ *                                    
+ *   entero x;                        
+ *   entero x = 5, y = 10;           
+ *   flotante promedio = 0.0;         
+ */
+
+Declaracion -> Tipo ListaVariables
+
+Tipo -> entero
+Tipo -> flotante
+Tipo -> booleano
+Tipo -> cadena
+
+ListaVariables -> ListaVariables , VarOInicio
+ListaVariables -> VarOInicio
+
+VarOInicio -> id
+VarOInicio -> id = Expresion
+
+
+/*
+ * Declaracion de arreglos                        
+ *                                                 
+ *   entero nums[10];                              
+ *   entero nums[3] = { 1, 2, 3 };                
+ *   El tamaño puede ser cualquier expresion entera
+ */
+
+DeclaracionArreglo -> Tipo id [ Expresion ]
+DeclaracionArreglo -> Tipo id [ Expresion ] = { ListaValores }
+
+ListaValores -> ListaValores , Expresion
+ListaValores -> Expresion
+
+
+/*
+ * Asignacion            
+ *                       
+ *   x = Expresion;      
+ *   nums[i] = Expresion;
+ */
+
+Asignacion        -> id = Expresion
+AsignacionArreglo -> id [ Expresion ] = Expresion
+
+
+/*
+ * Expresiones                                                
+ *                                                            
+ *   Jerarquia de precedencia (menor a mayor):                
+ *     1. OR  (||)                                            
+ *     2. AND (&&)                                            
+ *     3. Comparacion (== != < > <= >=)                       
+ *     4. Suma / Resta (+ -)                                  
+ *     5. Multiplicacion / Division (* /)                     
+ *     6. Unario (- !)                                        
+ *     7. Factor (literales, id, acceso a arreglo, parentesis)
+ */
+
+Expresion -> ExprOr
+
+ExprOr  -> ExprOr  ||  ExprAnd
+ExprOr  -> ExprAnd
+
+ExprAnd -> ExprAnd &&  ExprComp
+ExprAnd -> ExprComp
+
+ExprComp -> ExprComp == ExprArit
+ExprComp -> ExprComp != ExprArit
+ExprComp -> ExprComp <  ExprArit
+ExprComp -> ExprComp >  ExprArit
+ExprComp -> ExprComp <= ExprArit
+ExprComp -> ExprComp >= ExprArit
+ExprComp -> ExprArit
+
+ExprArit -> ExprArit + Termino
+ExprArit -> ExprArit - Termino
+ExprArit -> Termino
+
+Termino -> Termino * Factor
+Termino -> Termino / Factor
+Termino -> Factor
+
+Factor -> ( Expresion )
+Factor -> AccesoArreglo
+Factor -> id
+Factor -> lit_entero
+Factor -> lit_flotante
+Factor -> lit_cadena
+Factor -> verdadero
+Factor -> falso
+Factor -> - Factor
+Factor -> ! Factor
+
+AccesoArreglo -> id [ Expresion ]
+
+
+/*
+ * Salida: mostrar                                                
+ *                                                                
+ *   mostrar ( expr );                                            
+ *   mostrar ( expr, expr, expr );                                
+ *   Acepta cualquier expresion: variables, literales, operaciones
+ */
+
+MostrarDecl -> mostrar ( ListaExpresiones )
+
+ListaExpresiones -> ListaExpresiones , Expresion
+ListaExpresiones -> Expresion
+
+
+/*
+ * Entrada: leer                                  
+ *                                                
+ *   leer ( id );           <- variable escalar   
+ *   leer ( id[Expresion] ) <- elemento de arreglo
+ */
+
+LeerDecl -> leer ( id )
+LeerDecl -> leer ( AccesoArreglo )
+
+
+/*
+ * Control de flujo
+ */
+
+SentenciaSi -> si ( Expresion ) Bloque
+SentenciaSi -> si ( Expresion ) Bloque sino CuerpoSino
+
+CuerpoSino -> Bloque
+CuerpoSino -> SentenciaSi
+
+MientrasDecl -> mientras ( Expresion ) Bloque
+
+ParaDecl -> para ( Asignacion ; Expresion ; Asignacion ) Bloque
