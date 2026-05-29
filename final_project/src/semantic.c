@@ -88,3 +88,31 @@ static int tabla_definir(TablaSimbolos* t, const char* nombre,
     t->tope->simbolos = nuevo;
     return 0;
 }
+
+/**
+ * @brief Busca un símbolo desde el scope más interno hacia el global.
+ *        Marca el símbolo encontrado como usado.
+ */
+static Symbol* tabla_buscar(TablaSimbolos* t, const char* nombre) {
+    for (Scope* sc = t->tope; sc; sc = sc->anterior)
+        for (Symbol* s = sc->simbolos; s; s = s->siguiente)
+            if (strcmp(s->nombre, nombre) == 0) {
+                s->usado = 1;
+                return s;
+            }
+    return NULL;
+}
+
+static void tabla_liberar(TablaSimbolos* t) {
+    for (Scope* sc = t->tope; sc; ) {
+        for (Symbol* s = sc->simbolos; s; ) {
+            Symbol* sig = s->siguiente;
+            free(s);
+            s = sig;
+        }
+        Scope* ant = sc->anterior;
+        free(sc);
+        sc = ant;
+    }
+    free(t);
+}
