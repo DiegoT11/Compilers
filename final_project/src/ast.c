@@ -120,3 +120,81 @@ void nodo_imprimir(const Node* n, int sangria) {
         nodo_imprimir(n->hijos[i], sangria + 1);
     }
 }
+
+static void nodo_a_dot(const Node* n, FILE* out) {
+    if (!n) {
+        return;
+    }
+
+    char etiqueta[512];
+
+    snprintf(etiqueta, sizeof(etiqueta), "%s", n->tipo);
+
+    if (n->valor[0]) {
+        char val_esc[300];
+        int j = 0;
+
+        for (int i = 0; n->valor[i] && j < (int)sizeof(val_esc) - 3; i++) {
+            if (n->valor[i] == '"') {
+                val_esc[j++] = '\\';
+                val_esc[j++] = '"';
+            } else {
+                val_esc[j++] = n->valor[i];
+            }
+        }
+
+        val_esc[j] = '\0';
+
+        strncat(etiqueta, "\\n(", sizeof(etiqueta) - strlen(etiqueta) - 1);
+        strncat(etiqueta, val_esc, sizeof(etiqueta) - strlen(etiqueta) - 1);
+        strncat(etiqueta, ")", sizeof(etiqueta) - strlen(etiqueta) - 1);
+    }
+
+    if (n->data_type != TIPO_DESCONOCIDO &&
+        n->data_type != TIPO_ERROR) {
+        strncat(etiqueta, "\\n[", sizeof(etiqueta) - strlen(etiqueta) - 1);
+        strncat(
+            etiqueta,
+            tipo_a_str(n->data_type),
+            sizeof(etiqueta) - strlen(etiqueta) - 1
+        );
+        strncat(etiqueta, "]", sizeof(etiqueta) - strlen(etiqueta) - 1);
+    }
+
+    fprintf(out, "  nodo%d [label=\"%s\"];\n", n->id, etiqueta);
+
+    for (int i = 0; i < n->num_hijos; i++) {
+        if (!n->hijos[i]) {
+            continue;
+        }
+
+        fprintf(out, "  nodo%d -> nodo%d;\n", n->id, n->hijos[i]->id);
+
+        nodo_a_dot(n->hijos[i], out);
+    }
+}
+
+void nodo_generar_dot(const Node* n, const char* archivo) {
+    FILE* out = fopen(archivo, "w");
+
+    if (!out) {
+        fprintf(stderr, "Error: no se pudo crear '%s'\n", archivo);
+        return;
+    }
+
+    fprintf(out, "digraph ASA {\n");
+    fprintf(
+        out,
+        "  node [shape=box, style=rounded, fontname=\"Arial\", fontsize=10];\n"
+    );
+    fprintf(out, "  edge [arrowsize=0.7];\n");
+    fprintf(out, "  rankdir=TB;\n");
+
+    nodo_a_dot(n, out);
+
+    fprintf(out, "}\n");
+
+    fclose(out);
+
+    printf("--- ASA decorado generado en: %s ---\n", archivo);
+}
