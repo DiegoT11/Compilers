@@ -186,3 +186,235 @@ static void gen_expr(
         snprintf(res, ressz, "t?");
     
 }
+
+static void gen_nodo(
+    Generador* gen,
+    const Node* n,
+    char* resultado,
+    int resbuf
+) {
+    if (!n) {
+        return;
+    }
+    
+    // Programa / nodo raiz
+    if (strcmp(n->tipo, "Programa") == 0) {
+        for (int i = 0; i < n->num_hijos; i++) {
+            gen_nodo(gen, n->hijos[i], NULL, 0);
+        }
+
+        return;
+    }
+
+    if (strcmp(n->tipo, "Bloque") == 0) {
+        if (n->num_hijos > 0) {
+            gen_nodo(gen, n->hijos[0], NULL, 0);
+        }
+
+        return;
+    }
+
+    if (strcmp(n->tipo, "Declaracion") == 0) {
+        Node* lista = n->hijos[1];
+
+        for (int i = 0; i < lista->num_hijos; i++) {
+            Node* var = lista->hijos[i];
+
+            if (strcmp(var->tipo, "VarConInicio") != 0) {
+                continue;
+            }
+
+            char src[CODEGEN_MAX_OPERAND];
+
+            gen_expr(gen, var->hijos[0], src, sizeof(src));
+
+            emit(gen, OP_ASIGNAR, var->valor, src, NULL, NULL);
+        }
+
+        return;
+    }
+
+    if (strcmp(n->tipo, "DeclaracionArreglo") == 0) {
+        if (n->num_hijos >= 3) {
+            Node* vals = n->hijos[2];
+            Node* lista = vals->hijos[0];
+
+            for (int i = 0; i < lista->num_hijos; i++) {
+                char src[CODEGEN_MAX_OPERAND];
+                char idx[CODEGEN_MAX_OPERAND];
+
+                gen_expr(gen, lista->hijos[i], src, sizeof(src));
+
+                snprintf(idx, sizeof(idx), "%d", i);
+
+                emit(gen, OP_ARRAY_WRITE, n->valor, idx, src, NULL);
+            }
+        }
+
+        return;
+    }
+
+    if (strcmp(n->tipo, "Asignacion") == 0) {
+        char src[CODEGEN_MAX_OPERAND];
+
+        gen_expr(gen, n->hijos[0], src, sizeof(src));
+
+        emit(gen, OP_ASIGNAR, n->valor, src, NULL, NULL);
+
+        return;
+    }
+
+    if (strcmp(n->tipo, "AsignacionArreglo") == 0) {
+        char idx[CODEGEN_MAX_OPERAND];
+        char src[CODEGEN_MAX_OPERAND];
+
+        gen_expr(gen, n->hijos[0]->hijos[0], idx, sizeof(idx));
+        gen_expr(gen, n->hijos[1], src, sizeof(src));
+
+        emit(gen, OP_ARRAY_WRITE, n->valor, idx, src, NULL);
+
+        return;
+    }
+
+    if (strcmp(n->tipo, "Mostrar") == 0) {
+        Node* lista = n->hijos[0];
+        int nargs = lista->num_hijos;
+
+        for (int i = 0; i < nargs; i++) {
+            char src[CODEGEN_MAX_OPERAND];
+
+            gen_expr(gen, lista->hijos[i], src, sizeof(src));
+
+            emit(gen, OP_PARAM, NULL, src, NULL, NULL);
+        }
+
+        char nstr[16];
+
+        snprintf(nstr, sizeof(nstr), "%d", nargs);
+
+        emit(gen, OP_CALL, NULL, "mostrar", NULL, nstr);
+
+        return;
+    }
+
+    if (strcmp(n->tipo, "Leer") == 0) {
+        char ref[258];
+
+        snprintf(ref, sizeof(ref), "&%s", n->valor);
+
+        emit(gen, OP_CALL, NULL, "leer", NULL, ref);
+
+        return;
+    }
+
+    if (strcmp(n->tipo, "LeerArreglo") == 0) {
+        char idx[CODEGEN_MAX_OPERAND];
+        char ref[256 + CODEGEN_MAX_OPERAND + 4];
+
+        gen_expr(
+            gen,
+            n->hijos[0]->hijos[0]->hijos[0],
+            idx,
+            sizeof(idx)
+        );
+
+        snprintf(ref, sizeof(ref), "&%s[%s]", n->hijos[0]->valor, idx);
+
+        emit(gen, OP_CALL, NULL, "leer", NULL, ref);
+
+        return;
+    }
+
+    if (strcmp(n->tipo, "Si") == 0) {
+        char cond[CODEGEN_MAX_OPERAND];
+        char l_fin[CODEGEN_MAX_OPERAND];
+
+        gen_expr(gen, n->hijos[0], cond, sizeof(cond));
+
+        nueva_etiqueta(gen, l_fin, sizeof(l_fin));
+
+        emit(gen, OP_IF_FALSE, NULL, cond, NULL, l_fin);
+
+        gen_nodo(gen, n->hijos[1], NULL, 0);
+
+        emit(gen, OP_LABEL, l_fin, NULL, NULL, NULL);
+
+        return;
+    }
+
+    if (strcmp(n->tipo, "Si-Sino") == 0) {
+        char cond[CODEGEN_MAX_OPERAND];
+        char l_sino[CODEGEN_MAX_OPERAND];
+        char l_fin[CODEGEN_MAX_OPERAND];
+
+        gen_expr(gen, n->hijos[0], cond, sizeof(cond));
+
+        nueva_etiqueta(gen, l_sino, sizeof(l_sino));
+        nueva_etiqueta(gen, l_fin, sizeof(l_fin));
+
+        emit(gen, OP_IF_FALSE, NULL, cond, NULL, l_sino);
+
+        gen_nodo(gen, n->hijos[1], NULL, 0);
+
+        emit(gen, OP_GOTO, NULL, NULL, NULL, l_fin);
+        emit(gen, OP_LABEL, l_sino, NULL, NULL, NULL);
+
+        gen_nodo(gen, n->hijos[2], NULL, 0);
+
+        emit(gen, OP_LABEL, l_fin, NULL, NULL, NULL);
+
+        return;
+    }
+
+    if (strcmp(n->tipo, "Mientras") == 0) {
+        char l_ini[CODEGEN_MAX_OPERAND];
+        char l_fin[CODEGEN_MAX_OPERAND];
+        char cond[CODEGEN_MAX_OPERAND];
+
+        nueva_etiqueta(gen, l_ini, sizeof(l_ini));
+        nueva_etiqueta(gen, l_fin, sizeof(l_fin));
+
+        emit(gen, OP_LABEL, l_ini, NULL, NULL, NULL);
+
+        gen_expr(gen, n->hijos[0], cond, sizeof(cond));
+
+        emit(gen, OP_IF_FALSE, NULL, cond, NULL, l_fin);
+
+        gen_nodo(gen, n->hijos[1], NULL, 0);
+
+        emit(gen, OP_GOTO, NULL, NULL, NULL, l_ini);
+        emit(gen, OP_LABEL, l_fin, NULL, NULL, NULL);
+
+        return;
+    }
+
+    if (strcmp(n->tipo, "Para") == 0) {
+        char l_ini[CODEGEN_MAX_OPERAND];
+        char l_fin[CODEGEN_MAX_OPERAND];
+        char cond[CODEGEN_MAX_OPERAND];
+
+        nueva_etiqueta(gen, l_ini, sizeof(l_ini));
+        nueva_etiqueta(gen, l_fin, sizeof(l_fin));
+
+        gen_nodo(gen, n->hijos[0], NULL, 0);
+
+        emit(gen, OP_LABEL, l_ini, NULL, NULL, NULL);
+
+        gen_expr(gen, n->hijos[1], cond, sizeof(cond));
+
+        emit(gen, OP_IF_FALSE, NULL, cond, NULL, l_fin);
+
+        gen_nodo(gen, n->hijos[3], NULL, 0);
+        gen_nodo(gen, n->hijos[2], NULL, 0);
+
+        emit(gen, OP_GOTO, NULL, NULL, NULL, l_ini);
+        emit(gen, OP_LABEL, l_fin, NULL, NULL, NULL);
+
+        return;
+    }
+
+    // en los nodos estructurales no se retorna nada, solo se generan sus hijos
+    for (int i = 0; i < n->num_hijos; i++) {
+        gen_nodo(gen, n->hijos[i], resultado, resbuf);
+    }
+}
