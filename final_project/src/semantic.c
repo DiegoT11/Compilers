@@ -116,3 +116,58 @@ static void tabla_liberar(TablaSimbolos* t) {
     }
     free(t);
 }
+
+struct AnalizadorSemantico {
+    TablaSimbolos* tabla;
+    char errores[SEM_MAX_ERRORES][SEM_MAX_MSG_LEN];
+    int num_errores;
+    char advertencias[SEM_MAX_ADVERTENCIAS][SEM_MAX_MSG_LEN];
+    int num_advertencias;
+};
+
+AnalizadorSemantico* sem_nuevo(void) {
+    AnalizadorSemantico* sem =
+        (AnalizadorSemantico*)calloc(1, sizeof(AnalizadorSemantico));
+    sem->tabla = tabla_nueva();
+    return sem;
+}
+
+void sem_liberar(AnalizadorSemantico* sem) {
+    if (!sem) return;
+    tabla_liberar(sem->tabla);
+    free(sem);
+}
+
+int sem_tiene_errores(const AnalizadorSemantico* sem) {
+    return sem->num_errores > 0;
+}
+
+int sem_tiene_advertencias(const AnalizadorSemantico* sem) {
+    return sem->num_advertencias > 0;
+}
+
+void sem_reportar_errores(const AnalizadorSemantico* sem) {
+    for (int i = 0; i < sem->num_errores; i++)
+        fprintf(stdout, "  [Error semantico %d] %s\n", i + 1, sem->errores[i]);
+}
+
+void sem_reportar_advertencias(const AnalizadorSemantico* sem) {
+    for (int i = 0; i < sem->num_advertencias; i++)
+        fprintf(stdout, "  [Advertencia %d] %s\n", i + 1, sem->advertencias[i]);
+}
+
+static void agregar_error(AnalizadorSemantico* sem, const char* fmt, ...) {
+    if (sem->num_errores >= SEM_MAX_ERRORES) return;
+    va_list ap;
+    va_start(ap, fmt);
+    vsnprintf(sem->errores[sem->num_errores++], SEM_MAX_MSG_LEN, fmt, ap);
+    va_end(ap);
+}
+
+static void agregar_advertencia(AnalizadorSemantico* sem, const char* fmt, ...) {
+    if (sem->num_advertencias >= SEM_MAX_ADVERTENCIAS) return;
+    va_list ap;
+    va_start(ap, fmt);
+    vsnprintf(sem->advertencias[sem->num_advertencias++], SEM_MAX_MSG_LEN, fmt, ap);
+    va_end(ap);
+}
