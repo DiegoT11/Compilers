@@ -6,6 +6,54 @@
 
 static int nodo_contador = 0;
 
+const char* tipo_a_str(DataType t) {
+    switch (t) {
+        case TIPO_BOOL:
+            return "booleano";
+
+        case TIPO_INT:
+            return "entero";
+
+        case TIPO_FLOAT:
+            return "flotante";
+
+        case TIPO_CADENA:
+            return "cadena";
+
+        case TIPO_DESCONOCIDO:
+            return "desconocido";
+
+        case TIPO_ERROR:
+            return "error";
+    }
+
+    return "desconocido";
+}
+
+DataType str_a_tipo(const char* s) {
+    if (!s) {
+        return TIPO_DESCONOCIDO;
+    }
+
+    if (strcmp(s, "entero") == 0) {
+        return TIPO_INT;
+    }
+
+    if (strcmp(s, "flotante") == 0) {
+        return TIPO_FLOAT;
+    }
+
+    if (strcmp(s, "booleano") == 0) {
+        return TIPO_BOOL;
+    }
+
+    if (strcmp(s, "cadena") == 0) {
+        return TIPO_CADENA;
+    }
+
+    return TIPO_DESCONOCIDO;
+}
+
 Node* nodo_nuevo(const char* tipo, const char* valor, int line) {
     Node* n = calloc(1, sizeof(Node));
 
