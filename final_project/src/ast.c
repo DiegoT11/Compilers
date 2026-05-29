@@ -45,3 +45,30 @@ void nodo_liberar(Node* n) {
 
     free(n);
 }
+
+void nodo_imprimir(const Node* n, int sangria) {
+    if (!n) {
+        return;
+    }
+
+    for (int i = 0; i < sangria; i++) {
+        printf("  ");
+    }
+
+    printf("|-- %s", n->tipo);
+
+    if (n->valor[0]) {
+        printf(": %s", n->valor);
+    }
+
+    if (n->data_type != TIPO_DESCONOCIDO &&
+        n->data_type != TIPO_ERROR) {
+        printf(" [%s]", tipo_a_str(n->data_type));
+    }
+
+    printf("\n");
+
+    for (int i = 0; i < n->num_hijos; i++) {
+        nodo_imprimir(n->hijos[i], sangria + 1);
+    }
+}
