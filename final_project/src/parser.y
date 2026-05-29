@@ -1,0 +1,326 @@
+%{
+#include "ast.h"
+#include "parser.h"
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+extern int yylex();
+
+Node* raiz;
+%}
+
+%locations
+
+%union {
+    char*  sval;
+    Node*  nptr;
+}
+
+%token <sval> TOK_IDENTIFICADOR
+%token <sval> TOK_LITERAL_ENTERO
+%token <sval> TOK_LITERAL_FLOTANTE
+%token <sval> TOK_LITERAL_CADENA
+
+%token TOK_KW_ENTERO TOK_KW_FLOTANTE TOK_KW_BOOLEANO TOK_KW_CADENA
+%token TOK_KW_SI TOK_KW_SINO TOK_KW_MIENTRAS TOK_KW_PARA
+%token TOK_KW_MOSTRAR TOK_KW_LEER
+%token TOK_VERDADERO TOK_FALSO
+
+%token TOK_ASIGNAR
+%token TOK_IGUAL TOK_DIFERENTE_DE
+%token TOK_MENOR_QUE TOK_MAYOR_QUE TOK_MENOR_IGUAL TOK_MAYOR_IGUAL
+%token TOK_AND TOK_OR TOK_NOT
+%token TOK_MAS TOK_MENOS TOK_MULTIPLICACION TOK_DIVISION
+
+%token TOK_PARENTESIS_IZQUIERDO TOK_PARENTESIS_DERECHO
+%token TOK_LLAVE_IZQUIERDA TOK_LLAVE_DERECHA
+%token TOK_CORCHETE_IZQUIERDO TOK_CORCHETE_DERECHO
+%token TOK_COMA TOK_PUNTO_COMA
+
+%type <nptr> programa lista_sentencias sentencia bloque cuerpo_si
+%type <nptr> declaracion tipo lista_var var_o_init asignacion
+%type <nptr> expresion expr_or expr_and expr_comp expr_arit termino factor
+%type <nptr> sent_si mientras_decl para_decl
+%type <nptr> mostrar_decl leer_decl lista_expr
+%type <nptr> decl_arreglo asign_arreglo acceso_arreglo lista_init
+
+%%
+
+programa:
+    lista_sentencias { raiz = $1; }
+;
+
+lista_sentencias:
+    sentencia {
+        $$ = nodo_nuevo("Programa", "", 0);
+        nodo_agregar_hijo($$, $1);
+    }
+  | lista_sentencias sentencia {
+        nodo_agregar_hijo($1, $2);
+        $$ = $1;
+    }
+;
+
+sentencia:
+    declaracion     TOK_PUNTO_COMA { $$ = $1; }
+  | asignacion      TOK_PUNTO_COMA { $$ = $1; }
+  | sent_si                        { $$ = $1; }
+  | mientras_decl                  { $$ = $1; }
+  | para_decl                      { $$ = $1; }
+  | decl_arreglo   TOK_PUNTO_COMA  { $$ = $1; }
+  | asign_arreglo  TOK_PUNTO_COMA  { $$ = $1; }
+  | mostrar_decl   TOK_PUNTO_COMA  { $$ = $1; }
+  | leer_decl      TOK_PUNTO_COMA  { $$ = $1; }
+  | bloque                         { $$ = $1; }
+;
+
+bloque:
+    TOK_LLAVE_IZQUIERDA TOK_LLAVE_DERECHA {
+        $$ = nodo_nuevo("Bloque", "", 0);
+    }
+  | TOK_LLAVE_IZQUIERDA lista_sentencias TOK_LLAVE_DERECHA {
+        $$ = nodo_nuevo("Bloque", "", 0);
+        nodo_agregar_hijo($$, $2);
+    }
+;
+
+declaracion:
+    tipo lista_var {
+        $$ = nodo_nuevo("Declaracion", "", 0);
+        nodo_agregar_hijo($$, $1);
+        nodo_agregar_hijo($$, $2);
+    }
+;
+
+tipo:
+    TOK_KW_ENTERO   { $$ = nodo_nuevo("Tipo", "entero",   0); }
+  | TOK_KW_FLOTANTE { $$ = nodo_nuevo("Tipo", "flotante", 0); }
+  | TOK_KW_BOOLEANO { $$ = nodo_nuevo("Tipo", "booleano", 0); }
+  | TOK_KW_CADENA   { $$ = nodo_nuevo("Tipo", "cadena",   0); }
+;
+
+lista_var:
+    var_o_init {
+        $$ = nodo_nuevo("ListaVariables", "", 0);
+        nodo_agregar_hijo($$, $1);
+    }
+  | lista_var TOK_COMA var_o_init {
+        nodo_agregar_hijo($1, $3);
+        $$ = $1;
+    }
+;
+
+var_o_init:
+    TOK_IDENTIFICADOR {
+        $$ = nodo_nuevo("Variable", $1, yylineno);
+    }
+  | TOK_IDENTIFICADOR TOK_ASIGNAR expresion {
+        $$ = nodo_nuevo("VarConInicio", $1, yylineno);
+        nodo_agregar_hijo($$, $3);
+    }
+;
+
+asignacion:
+    TOK_IDENTIFICADOR TOK_ASIGNAR expresion {
+        $$ = nodo_nuevo("Asignacion", $1, yylineno);
+        nodo_agregar_hijo($$, $3);
+    }
+;
+
+expresion: expr_or { $$ = $1; };
+
+expr_or:
+    expr_or TOK_OR expr_and {
+        $$ = nodo_nuevo("Operacion", "||", yylineno);
+        nodo_agregar_hijo($$, $1);
+        nodo_agregar_hijo($$, $3);
+    }
+  | expr_and { $$ = $1; }
+;
+
+expr_and:
+    expr_and TOK_AND expr_comp {
+        $$ = nodo_nuevo("Operacion", "&&", yylineno);
+        nodo_agregar_hijo($$, $1);
+        nodo_agregar_hijo($$, $3);
+    }
+  | expr_comp { $$ = $1; }
+;
+
+expr_comp:
+    expr_comp TOK_IGUAL        expr_arit { $$ = nodo_nuevo("Operacion", "==", yylineno); nodo_agregar_hijo($$, $1); nodo_agregar_hijo($$, $3); }
+  | expr_comp TOK_DIFERENTE_DE expr_arit { $$ = nodo_nuevo("Operacion", "!=", yylineno); nodo_agregar_hijo($$, $1); nodo_agregar_hijo($$, $3); }
+  | expr_comp TOK_MENOR_QUE   expr_arit  { $$ = nodo_nuevo("Operacion", "<",  yylineno); nodo_agregar_hijo($$, $1); nodo_agregar_hijo($$, $3); }
+  | expr_comp TOK_MAYOR_QUE   expr_arit  { $$ = nodo_nuevo("Operacion", ">",  yylineno); nodo_agregar_hijo($$, $1); nodo_agregar_hijo($$, $3); }
+  | expr_comp TOK_MENOR_IGUAL expr_arit  { $$ = nodo_nuevo("Operacion", "<=", yylineno); nodo_agregar_hijo($$, $1); nodo_agregar_hijo($$, $3); }
+  | expr_comp TOK_MAYOR_IGUAL expr_arit  { $$ = nodo_nuevo("Operacion", ">=", yylineno); nodo_agregar_hijo($$, $1); nodo_agregar_hijo($$, $3); }
+  | expr_arit { $$ = $1; }
+;
+
+expr_arit:
+    expr_arit TOK_MAS   termino { $$ = nodo_nuevo("Operacion", "+", yylineno); nodo_agregar_hijo($$, $1); nodo_agregar_hijo($$, $3); }
+  | expr_arit TOK_MENOS termino { $$ = nodo_nuevo("Operacion", "-", yylineno); nodo_agregar_hijo($$, $1); nodo_agregar_hijo($$, $3); }
+  | termino { $$ = $1; }
+;
+
+termino:
+    termino TOK_MULTIPLICACION factor { $$ = nodo_nuevo("Operacion", "*", yylineno); nodo_agregar_hijo($$, $1); nodo_agregar_hijo($$, $3); }
+  | termino TOK_DIVISION        factor { $$ = nodo_nuevo("Operacion", "/", yylineno); nodo_agregar_hijo($$, $1); nodo_agregar_hijo($$, $3); }
+  | factor { $$ = $1; }
+;
+
+factor:
+    TOK_PARENTESIS_IZQUIERDO expresion TOK_PARENTESIS_DERECHO { $$ = $2; }
+  | acceso_arreglo { $$ = $1; }
+  | TOK_IDENTIFICADOR    { $$ = nodo_nuevo("Identificador",   $1,          yylineno); }
+  | TOK_LITERAL_ENTERO   { $$ = nodo_nuevo("LiteralEntero",   $1,          yylineno); }
+  | TOK_LITERAL_FLOTANTE { $$ = nodo_nuevo("LiteralFlotante", $1,          yylineno); }
+  | TOK_LITERAL_CADENA   { $$ = nodo_nuevo("LiteralCadena",   $1,          yylineno); }
+  | TOK_VERDADERO        { $$ = nodo_nuevo("LiteralBooleano", "verdadero", yylineno); }
+  | TOK_FALSO            { $$ = nodo_nuevo("LiteralBooleano", "falso",     yylineno); }
+  | TOK_MENOS factor     { $$ = nodo_nuevo("Negativo",        "",          yylineno); nodo_agregar_hijo($$, $2); }
+  | TOK_NOT   factor     { $$ = nodo_nuevo("Negacion",        "",          yylineno); nodo_agregar_hijo($$, $2); }
+;
+
+decl_arreglo:
+    tipo TOK_IDENTIFICADOR
+         TOK_CORCHETE_IZQUIERDO expresion TOK_CORCHETE_DERECHO {
+        Node* tam = nodo_nuevo("Tamano", "", 0);
+        nodo_agregar_hijo(tam, $4);
+        $$ = nodo_nuevo("DeclaracionArreglo", $2, yylineno);
+        nodo_agregar_hijo($$, $1);
+        nodo_agregar_hijo($$, tam);
+    }
+  | tipo TOK_IDENTIFICADOR
+         TOK_CORCHETE_IZQUIERDO expresion TOK_CORCHETE_DERECHO
+         TOK_ASIGNAR
+         TOK_LLAVE_IZQUIERDA lista_init TOK_LLAVE_DERECHA {
+        Node* tam = nodo_nuevo("Tamano", "", 0);
+        nodo_agregar_hijo(tam, $4);
+        Node* ini = nodo_nuevo("ValoresIniciales", "", 0);
+        nodo_agregar_hijo(ini, $8);
+        $$ = nodo_nuevo("DeclaracionArreglo", $2, yylineno);
+        nodo_agregar_hijo($$, $1);
+        nodo_agregar_hijo($$, tam);
+        nodo_agregar_hijo($$, ini);
+    }
+;
+
+lista_init:
+    expresion {
+        $$ = nodo_nuevo("ListaValores", "", 0);
+        nodo_agregar_hijo($$, $1);
+    }
+  | lista_init TOK_COMA expresion {
+        nodo_agregar_hijo($1, $3);
+        $$ = $1;
+    }
+;
+
+asign_arreglo:
+    TOK_IDENTIFICADOR
+        TOK_CORCHETE_IZQUIERDO expresion TOK_CORCHETE_DERECHO
+        TOK_ASIGNAR expresion {
+        Node* idx = nodo_nuevo("Indice", "", 0);
+        nodo_agregar_hijo(idx, $3);
+        $$ = nodo_nuevo("AsignacionArreglo", $1, yylineno);
+        nodo_agregar_hijo($$, idx);
+        nodo_agregar_hijo($$, $6);
+    }
+;
+
+acceso_arreglo:
+    TOK_IDENTIFICADOR
+        TOK_CORCHETE_IZQUIERDO expresion TOK_CORCHETE_DERECHO {
+        Node* idx = nodo_nuevo("Indice", "", 0);
+        nodo_agregar_hijo(idx, $3);
+        $$ = nodo_nuevo("AccesoArreglo", $1, yylineno);
+        nodo_agregar_hijo($$, idx);
+    }
+;
+
+mostrar_decl:
+    TOK_KW_MOSTRAR TOK_PARENTESIS_IZQUIERDO lista_expr TOK_PARENTESIS_DERECHO {
+        $$ = nodo_nuevo("Mostrar", "", 0);
+        nodo_agregar_hijo($$, $3);
+    }
+;
+
+lista_expr:
+    expresion {
+        $$ = nodo_nuevo("ListaExpresiones", "", 0);
+        nodo_agregar_hijo($$, $1);
+    }
+  | lista_expr TOK_COMA expresion {
+        nodo_agregar_hijo($1, $3);
+        $$ = $1;
+    }
+;
+
+leer_decl:
+    TOK_KW_LEER TOK_PARENTESIS_IZQUIERDO TOK_IDENTIFICADOR TOK_PARENTESIS_DERECHO {
+        $$ = nodo_nuevo("Leer", $3, yylineno);
+    }
+  | TOK_KW_LEER TOK_PARENTESIS_IZQUIERDO acceso_arreglo TOK_PARENTESIS_DERECHO {
+        $$ = nodo_nuevo("LeerArreglo", "", yylineno);
+        nodo_agregar_hijo($$, $3);
+    }
+;
+
+sent_si:
+    TOK_KW_SI TOK_PARENTESIS_IZQUIERDO expresion TOK_PARENTESIS_DERECHO bloque {
+        $$ = nodo_nuevo("Si", "", @1.first_line);
+        nodo_agregar_hijo($$, $3);
+        nodo_agregar_hijo($$, $5);
+    }
+  | TOK_KW_SI TOK_PARENTESIS_IZQUIERDO expresion TOK_PARENTESIS_DERECHO bloque
+        TOK_KW_SINO cuerpo_si {
+        $$ = nodo_nuevo("Si-Sino", "", @1.first_line);
+        nodo_agregar_hijo($$, $3);
+        nodo_agregar_hijo($$, $5);
+        nodo_agregar_hijo($$, $7);
+    }
+;
+
+cuerpo_si:
+    bloque   { $$ = $1; }
+  | sent_si  { $$ = $1; }
+;
+
+mientras_decl:
+    TOK_KW_MIENTRAS
+        TOK_PARENTESIS_IZQUIERDO expresion TOK_PARENTESIS_DERECHO
+        bloque {
+        $$ = nodo_nuevo("Mientras", "", @1.first_line);
+        nodo_agregar_hijo($$, $3);
+        nodo_agregar_hijo($$, $5);
+    }
+;
+
+para_decl:
+    TOK_KW_PARA
+        TOK_PARENTESIS_IZQUIERDO
+            asignacion TOK_PUNTO_COMA
+            expresion  TOK_PUNTO_COMA
+            asignacion
+        TOK_PARENTESIS_DERECHO
+        bloque {
+        $$ = nodo_nuevo("Para", "", @1.first_line);
+        nodo_agregar_hijo($$, $3);
+        nodo_agregar_hijo($$, $5);
+        nodo_agregar_hijo($$, $7);
+        nodo_agregar_hijo($$, $9);
+    }
+;
+
+%%
+
+void yyerror(const char *s) {
+    fprintf(stderr,
+        "Error sintactico [linea %d, col %d]: %s\n",
+        yylloc.first_line,
+        yylloc.first_column,
+        s);
+}
