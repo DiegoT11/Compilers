@@ -6,6 +6,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+extern int yylex();
+
 Node* raiz;
 %}
 
@@ -45,6 +47,44 @@ Node* raiz;
 %type <nptr> decl_arreglo asign_arreglo acceso_arreglo lista_init
 
 %%
+
+programa:
+    lista_sentencias { raiz = $1; }
+;
+
+lista_sentencias:
+    sentencia {
+        $$ = nodo_nuevo("Programa", "", 0);
+        nodo_agregar_hijo($$, $1);
+    }
+  | lista_sentencias sentencia {
+        nodo_agregar_hijo($1, $2);
+        $$ = $1;
+    }
+;
+
+sentencia:
+    declaracion     TOK_PUNTO_COMA { $$ = $1; }
+  | asignacion      TOK_PUNTO_COMA { $$ = $1; }
+  | sent_si                        { $$ = $1; }
+  | mientras_decl                  { $$ = $1; }
+  | para_decl                      { $$ = $1; }
+  | decl_arreglo   TOK_PUNTO_COMA  { $$ = $1; }
+  | asign_arreglo  TOK_PUNTO_COMA  { $$ = $1; }
+  | mostrar_decl   TOK_PUNTO_COMA  { $$ = $1; }
+  | leer_decl      TOK_PUNTO_COMA  { $$ = $1; }
+  | bloque                         { $$ = $1; }
+;
+
+bloque:
+    TOK_LLAVE_IZQUIERDA TOK_LLAVE_DERECHA {
+        $$ = nodo_nuevo("Bloque", "", 0);
+    }
+  | TOK_LLAVE_IZQUIERDA lista_sentencias TOK_LLAVE_DERECHA {
+        $$ = nodo_nuevo("Bloque", "", 0);
+        nodo_agregar_hijo($$, $2);
+    }
+;
 
 declaracion:
     tipo lista_var {
@@ -259,4 +299,28 @@ mientras_decl:
     }
 ;
 
+para_decl:
+    TOK_KW_PARA
+        TOK_PARENTESIS_IZQUIERDO
+            asignacion TOK_PUNTO_COMA
+            expresion  TOK_PUNTO_COMA
+            asignacion
+        TOK_PARENTESIS_DERECHO
+        bloque {
+        $$ = nodo_nuevo("Para", "", @1.first_line);
+        nodo_agregar_hijo($$, $3);
+        nodo_agregar_hijo($$, $5);
+        nodo_agregar_hijo($$, $7);
+        nodo_agregar_hijo($$, $9);
+    }
+;
+
 %%
+
+void yyerror(const char *s) {
+    fprintf(stderr,
+        "Error sintactico [linea %d, col %d]: %s\n",
+        yylloc.first_line,
+        yylloc.first_column,
+        s);
+}
