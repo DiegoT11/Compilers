@@ -82,6 +82,13 @@ var_o_init:
     }
 ;
 
+asignacion:
+    TOK_IDENTIFICADOR TOK_ASIGNAR expresion {
+        $$ = nodo_nuevo("Asignacion", $1, yylineno);
+        nodo_agregar_hijo($$, $3);
+    }
+;
+
 expresion: expr_or { $$ = $1; };
 
 expr_or:
@@ -169,6 +176,28 @@ lista_init:
   | lista_init TOK_COMA expresion {
         nodo_agregar_hijo($1, $3);
         $$ = $1;
+    }
+;
+
+asign_arreglo:
+    TOK_IDENTIFICADOR
+        TOK_CORCHETE_IZQUIERDO expresion TOK_CORCHETE_DERECHO
+        TOK_ASIGNAR expresion {
+        Node* idx = nodo_nuevo("Indice", "", 0);
+        nodo_agregar_hijo(idx, $3);
+        $$ = nodo_nuevo("AsignacionArreglo", $1, yylineno);
+        nodo_agregar_hijo($$, idx);
+        nodo_agregar_hijo($$, $6);
+    }
+;
+
+acceso_arreglo:
+    TOK_IDENTIFICADOR
+        TOK_CORCHETE_IZQUIERDO expresion TOK_CORCHETE_DERECHO {
+        Node* idx = nodo_nuevo("Indice", "", 0);
+        nodo_agregar_hijo(idx, $3);
+        $$ = nodo_nuevo("AccesoArreglo", $1, yylineno);
+        nodo_agregar_hijo($$, idx);
     }
 ;
 
