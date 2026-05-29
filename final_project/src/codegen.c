@@ -82,3 +82,32 @@ void gen_liberar(Generador* gen) {
 
     free(gen);
 }
+
+static void gen_nodo(
+    Generador* gen,
+    const Node* n,
+    char* resultado,
+    int resbuf
+);
+
+static void gen_expr(
+    Generador* gen,
+    const Node* n,
+    char* res,
+    int ressz
+) {
+    if (!n) {
+        snprintf(res, ressz, "?");
+        return;
+    }
+
+    // Literales e identificadores se retornan tal cual
+    if (strcmp(n->tipo, "LiteralEntero") == 0 ||
+        strcmp(n->tipo, "LiteralFlotante") == 0 ||
+        strcmp(n->tipo, "LiteralBooleano") == 0 ||
+        strcmp(n->tipo, "LiteralCadena") == 0 ||
+        strcmp(n->tipo, "Identificador") == 0) {
+        strncpy(res, n->valor, ressz - 1);
+        return;
+    }
+}
