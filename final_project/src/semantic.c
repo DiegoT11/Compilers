@@ -67,3 +67,24 @@ static int tabla_salir_scope(TablaSimbolos* t, Symbol** no_usados, int max) {
     free(s);
     return cnt;
 }
+
+/**
+ * @brief Inserta un símbolo en el scope actual.
+ * @return 0 si OK, -1 si ya existe en este scope (redeclaración).
+ */
+static int tabla_definir(TablaSimbolos* t, const char* nombre,
+                          DataType tipo, SymbolCategory cat, int linea) {
+    for (Symbol* s = t->tope->simbolos; s; s = s->siguiente)
+        if (strcmp(s->nombre, nombre) == 0) return -1;
+
+    Symbol* nuevo = (Symbol*)calloc(1, sizeof(Symbol));
+    strncpy(nuevo->nombre, nombre, sizeof(nuevo->nombre) - 1);
+    nuevo->tipo = tipo;
+    nuevo->categoria = cat;
+    nuevo->profundidad = t->tope->profundidad;
+    nuevo->linea_decl = linea;
+    nuevo->usado = 0;
+    nuevo->siguiente = t->tope->simbolos;
+    t->tope->simbolos = nuevo;
+    return 0;
+}
