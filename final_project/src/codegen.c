@@ -187,6 +187,8 @@ static void gen_expr(
     
 }
 
+// Sentencias
+
 static void gen_nodo(
     Generador* gen,
     const Node* n,
@@ -417,4 +419,144 @@ static void gen_nodo(
     for (int i = 0; i < n->num_hijos; i++) {
         gen_nodo(gen, n->hijos[i], resultado, resbuf);
     }
+}
+
+/**
+ * @brief Genera código de tres direcciones a partir del AST.
+ * @param gen Generador de código.
+ * @param raiz Nodo raíz del AST.
+ */
+void gen_generar(Generador* gen, const Node* raiz) {
+    gen_nodo(gen, (Node*)raiz, NULL, 0);
+}
+
+static void imprimir_instruccion(const Instruccion* ins, FILE* out) {
+    switch (ins->op) {
+        case OP_ASIGNAR:
+            fprintf(out, "\t%s = %s\n", ins->dst, ins->src1);
+            break;
+
+        case OP_BINARIA:
+            fprintf(
+                out,
+                "\t%s = %s %s %s\n",
+                ins->dst,
+                ins->src1,
+                ins->extra,
+                ins->src2
+            );
+            break;
+
+        case OP_UNARIA:
+            fprintf(
+                out,
+                "\t%s = %s%s\n",
+                ins->dst,
+                ins->extra,
+                ins->src1
+            );
+            break;
+
+        case OP_ARRAY_READ:
+            fprintf(
+                out,
+                "\t%s = %s[%s]\n",
+                ins->dst,
+                ins->src1,
+                ins->src2
+            );
+            break;
+
+        case OP_ARRAY_WRITE:
+            fprintf(
+                out,
+                "\t%s[%s] = %s\n",
+                ins->dst,
+                ins->src1,
+                ins->src2
+            );
+            break;
+
+        case OP_LABEL:
+            fprintf(out, "%s:\n", ins->dst);
+            break;
+
+        case OP_GOTO:
+            fprintf(out, "\tgoto %s\n", ins->extra);
+            break;
+
+        case OP_IF_TRUE:
+            fprintf(out, "\tif %s goto %s\n", ins->src1, ins->extra);
+            break;
+
+        case OP_IF_FALSE:
+            fprintf(out, "\tifFalse %s goto %s\n", ins->src1, ins->extra);
+            break;
+
+        case OP_PARAM:
+            fprintf(out, "\tparam %s\n", ins->src1);
+            break;
+
+        case OP_CALL:
+            if (ins->dst[0]) {
+                fprintf(
+                    out,
+                    "\t%s = call %s, %s\n",
+                    ins->dst,
+                    ins->src1,
+                    ins->extra
+                );
+            } else {
+                fprintf(
+                    out,
+                    "\tcall %s, %s\n",
+                    ins->src1,
+                    ins->extra
+                );
+            }
+
+            break;
+
+        case OP_CAST:
+            fprintf(
+                out,
+                "\t%s = (%s) %s\n",
+                ins->dst,
+                ins->extra,
+                ins->src1
+            );
+            break;
+    }
+}
+
+void gen_imprimir(const Generador* gen, FILE* out) {
+    fprintf(out, "; === Codigo de Tres Direcciones ===\n");
+
+    for (const Instruccion* ins = gen->cabeza;
+         ins;
+         ins = ins->siguiente) {
+        imprimir_instruccion(ins, out);
+    }
+
+    fprintf(out, "; === Fin del codigo ===\n");
+}
+
+/**
+ * @brief Guarda el código intermedio generado en un archivo.
+ * @param gen Generador con las instrucciones.
+ * @param archivo Ruta del archivo de salida.
+ */
+void gen_guardar(const Generador* gen, const char* archivo) {
+    FILE* out = fopen(archivo, "w");
+
+    if (!out) {
+        fprintf(stderr, "Error: no se pudo crear '%s'\n", archivo);
+        return;
+    }
+
+    gen_imprimir(gen, out);
+
+    fclose(out);
+
+    printf("--- Codigo intermedio generado en: %s ---\n", archivo);
 }
