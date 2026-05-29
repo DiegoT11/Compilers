@@ -110,4 +110,79 @@ static void gen_expr(
         strncpy(res, n->valor, ressz - 1);
         return;
     }
+
+    // Conversión de tipos. gen_expr hijo, luego cast
+    if (strcmp(n->tipo, "Conversion") == 0) {
+        char src[CODEGEN_MAX_OPERAND];
+
+        gen_expr(gen, n->hijos[0], src, sizeof(src));
+
+        nuevo_temp(gen, res, ressz);
+
+        emit(
+            gen,
+            OP_CAST,
+            res,
+            src,
+            NULL,
+            tipo_a_str(n->data_type)
+        );
+
+        return;
+    }
+
+    if (strcmp(n->tipo, "Operacion") == 0 &&
+        n->num_hijos == 2) {
+        char l[CODEGEN_MAX_OPERAND];
+        char r[CODEGEN_MAX_OPERAND];
+
+        gen_expr(gen, n->hijos[0], l, sizeof(l));
+        gen_expr(gen, n->hijos[1], r, sizeof(r));
+
+        nuevo_temp(gen, res, ressz);
+
+        emit(gen, OP_BINARIA, res, l, r, n->valor);
+
+        return;
+    }
+
+    // Operaciones unarias: gen_expr hijo, luego unaria
+    if (strcmp(n->tipo, "Negativo") == 0 ||
+        strcmp(n->tipo, "Negacion") == 0) {
+        char src[CODEGEN_MAX_OPERAND];
+
+        gen_expr(gen, n->hijos[0], src, sizeof(src));
+
+        nuevo_temp(gen, res, ressz);
+
+        emit(
+            gen,
+            OP_UNARIA,
+            res,
+            src,
+            NULL,
+            strcmp(n->tipo, "Negativo") == 0 ? "-" : "!"
+        );
+
+        return;
+    }
+
+    if (strcmp(n->tipo, "AccesoArreglo") == 0) {
+        char idx[CODEGEN_MAX_OPERAND];
+
+        gen_expr(gen, n->hijos[0]->hijos[0], idx, sizeof(idx));
+
+        nuevo_temp(gen, res, ressz);
+
+        emit(gen, OP_ARRAY_READ, res, n->valor, idx, NULL);
+
+        return;
+    }
+
+    // Fallback: se genera el nodo recursivamente y se retorna un temporal con su resultado
+    if (n->valor[0]) 
+        strncpy(res, n->valor, ressz - 1);
+    else 
+        snprintf(res, ressz, "t?");
+    
 }
