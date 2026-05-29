@@ -3,7 +3,7 @@ CFLAGS = -std=c99 -Wall -Wextra -g -Isrc
 BISON  = bison
 FLEX   = flex
 
-SRCS = src/ast.c src/semantic.c src/codegen.c src/main.c
+SRCS = src/ast.c src/semantic.c src/codegen.c src/codegen_fis25.c src/main.c
 GEN  = parser.tab.c parser.tab.h lexer.yy.c
 
 # Build principal

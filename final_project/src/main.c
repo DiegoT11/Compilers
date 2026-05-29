@@ -4,6 +4,7 @@
 
 #include "ast.h"
 #include "codegen.h"
+#include "codegen_fis25.h"
 #include "semantic.h"
 #include "parser.h"
 
@@ -18,8 +19,10 @@ typedef struct {
     int imprimir_ast;
     int generar_dot;
     int generar_ci;
+    int generar_fis25;
     const char* archivo_dot;
     const char* archivo_ci;
+    const char* archivo_fis25;
 } Opciones;
 
 static void mostrar_ayuda(const char* prog) {
@@ -29,20 +32,24 @@ static void mostrar_ayuda(const char* prog) {
         "\n"
         "  --no-ast       no imprimir el ASA decorado\n"
         "  --no-dot       no generar el archivo .dot (Graphviz)\n"
-        "  --no-ci        no generar codigo intermedio\n"
-        "  --dot=FILE     nombre del .dot  (por defecto: asa.dot)\n"
-        "  --ci=FILE      nombre del .ci   (por defecto: codigo.ci)\n",
+        "  --no-ci        no generar codigo intermedio (formato propio)\n"
+        "  --fis25        generar codigo intermedio en formato FIS-25\n"
+        "  --dot=FILE     nombre del .dot      (por defecto: asa.dot)\n"
+        "  --ci=FILE      nombre del .ci       (por defecto: codigo.ci)\n"
+        "  --fis25=FILE   nombre del .fis25    (por defecto: codigo.fis25)\n",
         prog
     );
 }
 
 static Opciones parsear_opciones(int argc, char* argv[]) {
     Opciones opt = {
-        .imprimir_ast = 1,
-        .generar_dot = 1,
-        .generar_ci = 1,
-        .archivo_dot = "asa.dot",
-        .archivo_ci = "codigo.ci"
+        .imprimir_ast   = 1,
+        .generar_dot    = 1,
+        .generar_ci     = 1,
+        .generar_fis25  = 0,
+        .archivo_dot    = "asa.dot",
+        .archivo_ci     = "codigo.ci",
+        .archivo_fis25  = "codigo.fis25"
     };
 
     for (int i = 1; i < argc; i++) {
@@ -52,10 +59,15 @@ static Opciones parsear_opciones(int argc, char* argv[]) {
             opt.generar_dot = 0;
         } else if (strcmp(argv[i], "--no-ci") == 0) {
             opt.generar_ci = 0;
+        } else if (strcmp(argv[i], "--fis25") == 0) {
+            opt.generar_fis25 = 1;
         } else if (strncmp(argv[i], "--dot=", 6) == 0) {
             opt.archivo_dot = argv[i] + 6;
         } else if (strncmp(argv[i], "--ci=", 5) == 0) {
             opt.archivo_ci = argv[i] + 5;
+        } else if (strncmp(argv[i], "--fis25=", 8) == 0) {
+            opt.archivo_fis25  = argv[i] + 8;
+            opt.generar_fis25  = 1;       /* --fis25=FILE implica activarlo */
         } else {
             fprintf(stderr, "Opcion desconocida: %s\n", argv[i]);
             mostrar_ayuda(argv[0]);
@@ -117,19 +129,30 @@ int main(int argc, char* argv[]) {
         nodo_generar_dot(raiz, opt.archivo_dot);
     }
 
-    if (opt.generar_ci) {
+    /* ── Fase 4: generacion de codigo intermedio ─────────────────── */
+    if (opt.generar_ci || opt.generar_fis25) {
         fprintf(stderr, "\n[Fase 4] Generando codigo intermedio...\n");
 
         Generador* gen = gen_nuevo();
-
         gen_generar(gen, raiz);
 
-        printf("\n[Fase 4] Codigo intermedio:\n");
-        printf("----------------------------\n");
+        /* ── formato propio (CI) ──────────────────────────────────── */
+        if (opt.generar_ci) {
+            printf("\n[Fase 4] Codigo intermedio (formato propio):\n");
+            printf("---------------------------------------------\n");
 
-        gen_imprimir(gen, stdout);
+            gen_imprimir(gen, stdout);
+            gen_guardar(gen, opt.archivo_ci);
+        }
 
-        gen_guardar(gen, opt.archivo_ci);
+        /* ── formato FIS-25 ───────────────────────────────────────── */
+        if (opt.generar_fis25) {
+            printf("\n[Fase 4] Codigo intermedio (FIS-25):\n");
+            printf("-------------------------------------\n");
+
+            gen_imprimir_fis25(gen, stdout);
+            gen_guardar_fis25(gen, opt.archivo_fis25);
+        }
 
         gen_liberar(gen);
 
