@@ -201,6 +201,34 @@ acceso_arreglo:
     }
 ;
 
+mostrar_decl:
+    TOK_KW_MOSTRAR TOK_PARENTESIS_IZQUIERDO lista_expr TOK_PARENTESIS_DERECHO {
+        $$ = nodo_nuevo("Mostrar", "", 0);
+        nodo_agregar_hijo($$, $3);
+    }
+;
+
+lista_expr:
+    expresion {
+        $$ = nodo_nuevo("ListaExpresiones", "", 0);
+        nodo_agregar_hijo($$, $1);
+    }
+  | lista_expr TOK_COMA expresion {
+        nodo_agregar_hijo($1, $3);
+        $$ = $1;
+    }
+;
+
+leer_decl:
+    TOK_KW_LEER TOK_PARENTESIS_IZQUIERDO TOK_IDENTIFICADOR TOK_PARENTESIS_DERECHO {
+        $$ = nodo_nuevo("Leer", $3, yylineno);
+    }
+  | TOK_KW_LEER TOK_PARENTESIS_IZQUIERDO acceso_arreglo TOK_PARENTESIS_DERECHO {
+        $$ = nodo_nuevo("LeerArreglo", "", yylineno);
+        nodo_agregar_hijo($$, $3);
+    }
+;
+
 sent_si:
     TOK_KW_SI TOK_PARENTESIS_IZQUIERDO expresion TOK_PARENTESIS_DERECHO bloque {
         $$ = nodo_nuevo("Si", "", @1.first_line);
