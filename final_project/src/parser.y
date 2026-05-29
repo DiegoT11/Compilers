@@ -82,6 +82,42 @@ var_o_init:
     }
 ;
 
+expresion: expr_or { $$ = $1; };
+
+expr_or:
+    expr_or TOK_OR expr_and {
+        $$ = nodo_nuevo("Operacion", "||", yylineno);
+        nodo_agregar_hijo($$, $1);
+        nodo_agregar_hijo($$, $3);
+    }
+  | expr_and { $$ = $1; }
+;
+
+expr_and:
+    expr_and TOK_AND expr_comp {
+        $$ = nodo_nuevo("Operacion", "&&", yylineno);
+        nodo_agregar_hijo($$, $1);
+        nodo_agregar_hijo($$, $3);
+    }
+  | expr_comp { $$ = $1; }
+;
+
+expr_comp:
+    expr_comp TOK_IGUAL        expr_arit { $$ = nodo_nuevo("Operacion", "==", yylineno); nodo_agregar_hijo($$, $1); nodo_agregar_hijo($$, $3); }
+  | expr_comp TOK_DIFERENTE_DE expr_arit { $$ = nodo_nuevo("Operacion", "!=", yylineno); nodo_agregar_hijo($$, $1); nodo_agregar_hijo($$, $3); }
+  | expr_comp TOK_MENOR_QUE   expr_arit  { $$ = nodo_nuevo("Operacion", "<",  yylineno); nodo_agregar_hijo($$, $1); nodo_agregar_hijo($$, $3); }
+  | expr_comp TOK_MAYOR_QUE   expr_arit  { $$ = nodo_nuevo("Operacion", ">",  yylineno); nodo_agregar_hijo($$, $1); nodo_agregar_hijo($$, $3); }
+  | expr_comp TOK_MENOR_IGUAL expr_arit  { $$ = nodo_nuevo("Operacion", "<=", yylineno); nodo_agregar_hijo($$, $1); nodo_agregar_hijo($$, $3); }
+  | expr_comp TOK_MAYOR_IGUAL expr_arit  { $$ = nodo_nuevo("Operacion", ">=", yylineno); nodo_agregar_hijo($$, $1); nodo_agregar_hijo($$, $3); }
+  | expr_arit { $$ = $1; }
+;
+
+expr_arit:
+    expr_arit TOK_MAS   termino { $$ = nodo_nuevo("Operacion", "+", yylineno); nodo_agregar_hijo($$, $1); nodo_agregar_hijo($$, $3); }
+  | expr_arit TOK_MENOS termino { $$ = nodo_nuevo("Operacion", "-", yylineno); nodo_agregar_hijo($$, $1); nodo_agregar_hijo($$, $3); }
+  | termino { $$ = $1; }
+;
+
 decl_arreglo:
     tipo TOK_IDENTIFICADOR
          TOK_CORCHETE_IZQUIERDO expresion TOK_CORCHETE_DERECHO {
